@@ -31,7 +31,7 @@
       <section id="imagefilm" class="film-section section-pad">
         <div class="film-heading"><div><p class="section-no">[ 04 — IMAGEFILM ]</p><h2>Inside<br><em>Sfumato.</em></h2></div><p>Ein Blick hinter die Kulissen — Atmosphäre, Handwerk und die Menschen, die Tattoo Sfumato prägen.</p></div>
         <div class="film-frame reveal">
-          <video src="/Imagevideo.MP4" poster="/studio-hero.png" preload="metadata" playsinline aria-label="Imagefilm von Tattoo Sfumato"></video>
+          <video src="/Imagevideo.MP4" poster="/Cover.png" preload="metadata" playsinline aria-label="Imagefilm von Tattoo Sfumato"></video>
           <div class="film-shade"></div>
           <div class="film-status"><i></i><span>IMAGEFILM<br><b>SFUMATO / EINBECK</b></span></div>
           <button class="film-play" type="button" aria-label="Imagefilm abspielen"><span></span></button>
