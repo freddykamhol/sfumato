@@ -45,6 +45,28 @@
   font-size: 9px;
 }
 
+.request-empty {
+  padding: 70px 24px;
+  text-align: center;
+}
+
+.request-empty span {
+  color: var(--red);
+  font-size: 8px;
+  letter-spacing: 0.2em;
+}
+
+.request-empty h3 {
+  margin: 14px 0 8px;
+  font: 400 28px var(--serif);
+}
+
+.request-empty p {
+  margin: 0;
+  color: #8b877f;
+  font-size: 10px;
+}
+
 @media (max-width: 800px) {
   .admin-main > header {
     height: 74px;

@@ -7,11 +7,7 @@ const portfolio = [
   { title: 'Nocturne', type: 'Realistic · Custom', position: '50% 47%' },
   { title: 'Wild Peony', type: 'Microrealism · Detail', position: '50% 78%' },
 ]
-const demoRequests = [
-  { id: 'LT-028', name: 'Mara K.', motif: 'Floraler Sleeve', date: '24. Aug.', status: 'Neu' },
-  { id: 'LT-027', name: 'Jonas R.', motif: 'Ornament / Brust', date: '22. Aug.', status: 'In Klärung' },
-  { id: 'LT-026', name: 'Sina V.', motif: 'Fineline Peony', date: '20. Aug.', status: 'Bestätigt' },
-]
+const demoRequests = []
 const arrow = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
 const instagram = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>'
 const adminWelcome = () => {
@@ -100,7 +96,7 @@ function appointmentView(day){
     </aside>
   </div>`
 }
-function requestsView() { return `<div class="admin-title"><div><span class="admin-kicker">INBOX</span><h2>Anfragen</h2><p>Alle eingehenden Tattoo-Projekte priorisiert an einem Ort.</p></div><button class="filter">Status: Alle ↓</button></div><div class="request-list request-inbox"><div class="list-head"><span>NAME / KONTAKT</span><span>STIL</span><span>PROJEKT</span><span>STATUS</span><span></span></div>${demoRequests.map((r,i)=>`<button class="request-row" data-request="${i}"><span><b>${r.name}</b><small>${r.email || r.phone || 'Keine Kontaktdaten'} · ${r.id}</small></span><span><b>${r.style || (i===0?'Microrealism':i===1?'Realistic':'Fineline')}</b><small>${r.placement || r.motif}</small></span><span><b>${r.size || 'Größe offen'}</b><small>${r.consultation ? `Beratung: ${r.consultationType === 'phone' ? 'telefonisch' : 'im Studio'}` : 'Direkte Anfrage'}</small></span><span><i class="status ${r.status.replace(' ','-').toLowerCase()}">${r.status}</i></span><span class="row-arrow">↗</span></button>`).join('')}</div>` }
+function requestsView() { return `<div class="admin-title"><div><span class="admin-kicker">INBOX</span><h2>Anfragen</h2><p>Alle eingehenden Tattoo-Projekte priorisiert an einem Ort.</p></div><button class="filter">Status: Alle ↓</button></div><div class="request-list request-inbox"><div class="list-head"><span>NAME / KONTAKT</span><span>STIL</span><span>PROJEKT</span><span>STATUS</span><span></span></div>${demoRequests.length ? demoRequests.map((r,i)=>`<button class="request-row" data-request="${i}"><span><b>${r.name}</b><small>${r.email || r.phone || 'Keine Kontaktdaten'} · ${r.id}</small></span><span><b>${r.style || 'Nicht angegeben'}</b><small>${r.placement || 'Körperstelle offen'}</small></span><span><b>${r.size || 'Größe offen'}</b><small>${r.consultation ? `Beratung: ${r.consultationType === 'phone' ? 'telefonisch' : 'im Studio'}` : 'Direkte Anfrage'}</small></span><span><i class="status ${r.status.replace(' ','-').toLowerCase()}">${r.status}</i></span><span class="row-arrow">↗</span></button>`).join('') : '<div class="request-empty"><span>00</span><h3>Noch keine Anfragen.</h3><p>Neue Booking-Anfragen erscheinen automatisch an dieser Stelle.</p></div>'}</div>` }
 function portfolioView() { return `<div class="admin-title"><div><h2>Referenzen</h2><p>Arbeiten für die öffentliche Galerie verwalten.</p></div><label class="admin-upload"><input id="portfolio-upload" type="file" accept="image/*" multiple>+ Neue Arbeit</label></div><div class="admin-gallery" id="admin-gallery">${portfolio.map(p=>`<article><img src="/studio-hero.png" style="object-position:${p.position}"><div><b>${p.title}</b><small>${p.type}</small></div><button aria-label="Referenz verwalten">···</button></article>`).join('')}</div>` }
 function settingsView(){return `<div class="admin-title"><div><span class="admin-kicker">SYSTEM</span><h2>Einstellungen</h2><p>Verbindungen und Verfügbarkeiten für die automatische Terminplanung.</p></div><button class="save-settings">Änderungen speichern</button></div><div class="settings-layout">
   <section class="integration-card"><div class="integration-icon">G</div><div><h3>Google Kalender</h3><p>Termine lesen, freie Zeiten prüfen und bestätigte Termine eintragen.</p></div><span class="connected">VERBUNDEN</span><button>Verbindung verwalten</button></section>
