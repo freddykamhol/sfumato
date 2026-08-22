@@ -13,6 +13,24 @@ const portfolio = [
 const demoRequests = []
 const appointments = []
 let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+const LOCAL_APPOINTMENTS_KEY = 'sfumato-appointments'
+const readLocalAppointments = () => {
+  try { return JSON.parse(localStorage.getItem(LOCAL_APPOINTMENTS_KEY) || '[]') }
+  catch { return [] }
+}
+const saveLocalAppointment = appointment => localStorage.setItem(LOCAL_APPOINTMENTS_KEY, JSON.stringify([...readLocalAppointments(), appointment].slice(-1000)))
+const createAppointment = async payload => {
+  try {
+    const response=await fetch('/api/appointments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    const text=await response.text()
+    let result
+    try { result=text?JSON.parse(text):null } catch { result=null }
+    if(response.ok&&result?.id)return result
+  } catch {}
+  const localAppointment={...payload,id:`APT-LOCAL-${Date.now().toString(36).toUpperCase()}`,createdAt:new Date().toISOString(),source:'local'}
+  saveLocalAppointment(localAppointment)
+  return localAppointment
+}
 const LOCAL_REQUESTS_KEY = 'sfumato-booking-requests'
 const readLocalRequests = () => {
   try { return JSON.parse(localStorage.getItem(LOCAL_REQUESTS_KEY) || '[]') }
@@ -417,13 +435,18 @@ function initAdmin() {
     if (!response.ok || !text) throw new Error('Termine konnten nicht geladen werden.')
     return JSON.parse(text)
   }).then(entries => {
-    appointments.splice(0, appointments.length, ...entries.sort((a,b)=>new Date(a.start)-new Date(b.start)))
+    const merged=[...entries,...readLocalAppointments()].filter((item,index,all)=>all.findIndex(entry=>entry.id===item.id)===index)
+    appointments.splice(0, appointments.length, ...merged.sort((a,b)=>new Date(a.start)-new Date(b.start)))
     if (currentAdminView() === 'dashboard') content.innerHTML = dashboardView()
     else if (currentAdminView() === 'appointmentFiles') content.innerHTML = appointmentFilesView()
     else if (currentAdminView() === 'customers') content.innerHTML = customersView()
     openAdminDeepLink()
   }).catch(() => {
+    appointments.splice(0, appointments.length, ...readLocalAppointments().sort((a,b)=>new Date(a.start)-new Date(b.start)))
     if (currentAdminView() === 'dashboard') content.innerHTML = dashboardView()
+    else if (currentAdminView() === 'appointmentFiles') content.innerHTML = appointmentFilesView()
+    else if (currentAdminView() === 'customers') content.innerHTML = customersView()
+    openAdminDeepLink()
   })
   const openModal=html=>{modal.innerHTML=`<div class="modal-backdrop" data-close></div><section class="modal-sheet">${html}</section>`;modal.classList.add('open');modal.setAttribute('aria-hidden','false')}
   const closeModal=()=>{modal.classList.remove('open');modal.setAttribute('aria-hidden','true');const url=new URL(location.href);url.searchParams.delete('aktion');history.replaceState(null,'',url)}
@@ -445,9 +468,7 @@ function initAdmin() {
     try{
       const payload=Object.fromEntries(new FormData(form))
       payload.start=new Date(payload.start).toISOString();payload.end=new Date(payload.end).toISOString()
-      const response=await fetch('/api/appointments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-      const text=await response.text();const result=text?JSON.parse(text):null
-      if(!response.ok||!result?.id)throw new Error(result?.error||'Termin konnte nicht gespeichert werden.')
+      const result=await createAppointment(payload)
       appointments.push(result);appointments.sort((a,b)=>new Date(a.start)-new Date(b.start));closeModal();content.innerHTML=dashboardView()
     }catch(error){form.querySelector('.modal-form-error').textContent=error.message;submit.disabled=false;submit.textContent='Termin speichern →'}
   })
@@ -458,9 +479,7 @@ function initAdmin() {
     const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Wird gespeichert …'
     try{
       const payload=Object.fromEntries(new FormData(form));payload.start=new Date(payload.start).toISOString();payload.end=new Date(payload.end).toISOString()
-      const response=await fetch('/api/appointments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-      const text=await response.text();const result=text?JSON.parse(text):null
-      if(!response.ok||!result?.id)throw new Error(result?.error||'Termin konnte nicht gespeichert werden.')
+      const result=await createAppointment(payload)
       appointments.push(result);appointments.sort((a,b)=>new Date(a.start)-new Date(b.start));location.href=`/admin/terminakten/?termin=${encodeURIComponent(result.id)}`
     }catch(error){form.querySelector('.modal-form-error').textContent=error.message;submit.disabled=false;submit.textContent='Termin speichern →'}
   })
