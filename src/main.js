@@ -108,6 +108,34 @@ function initSite() {
   window.addEventListener('scroll', () => { const max=document.documentElement.scrollHeight-innerHeight; progress.style.transform=`scaleX(${max ? scrollY/max : 0})` }, {passive:true})
   const dot=document.querySelector('.cursor-dot')
   if(matchMedia('(pointer:fine)').matches){ window.addEventListener('pointermove',e=>{dot.style.transform=`translate3d(${e.clientX}px,${e.clientY}px,0)`}); document.querySelectorAll('a,button,label').forEach(el=>{el.addEventListener('mouseenter',()=>dot.classList.add('active'));el.addEventListener('mouseleave',()=>dot.classList.remove('active'))}) }
+
+  const motionAllowed = matchMedia('(pointer:fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (motionAllowed) {
+    const heroVisual = document.querySelector('.hero-visual')
+    heroVisual?.addEventListener('pointermove', event => {
+      const bounds = heroVisual.getBoundingClientRect()
+      heroVisual.style.setProperty('--spot-x', `${event.clientX - bounds.left}px`)
+      heroVisual.style.setProperty('--spot-y', `${event.clientY - bounds.top}px`)
+      heroVisual.classList.add('spotlight-active')
+    })
+    heroVisual?.addEventListener('pointerleave', () => heroVisual.classList.remove('spotlight-active'))
+
+    document.querySelectorAll('.work-image').forEach(card => {
+      card.addEventListener('pointermove', event => {
+        const bounds = card.getBoundingClientRect()
+        const rotateX = ((event.clientY - bounds.top) / bounds.height - .5) * -5
+        const rotateY = ((event.clientX - bounds.left) / bounds.width - .5) * 5
+        card.style.setProperty('--tilt-x', `${rotateX.toFixed(2)}deg`)
+        card.style.setProperty('--tilt-y', `${rotateY.toFixed(2)}deg`)
+        card.classList.add('tilting')
+      })
+      card.addEventListener('pointerleave', () => {
+        card.classList.remove('tilting')
+        card.style.removeProperty('--tilt-x')
+        card.style.removeProperty('--tilt-y')
+      })
+    })
+  }
 }
 function initUploads(){ document.querySelector('#portfolio-upload')?.addEventListener('change', e=>[...e.target.files].forEach(file=>{const url=URL.createObjectURL(file); document.querySelector('#admin-gallery').insertAdjacentHTML('afterbegin',`<article><img src="${url}"><div><b>${file.name.replace(/\.[^.]+$/,'')}</b><small>Neu hochgeladen</small></div><button>···</button></article>`) })) }
 function initAdmin() {
