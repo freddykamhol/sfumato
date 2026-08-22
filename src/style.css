@@ -94,3 +94,4 @@ main[id],section[id]{scroll-margin-top:88px}@media(max-width:800px){main[id],sec
 .statement,.works,.about,.film-section,.process,.booking,footer{content-visibility:auto;contain-intrinsic-size:auto 900px}
 @media(pointer:coarse){.film-frame.is-playing.controls-visible .film-meta{opacity:1;pointer-events:auto;transform:none}}
 .about-image{position:relative;margin:0}.about-image img{object-position:50% 50%}.about-image figcaption{position:absolute;z-index:2;left:24px;right:24px;bottom:22px;width:max-content;max-width:calc(100% - 48px);padding:11px 14px;background:rgba(8,8,8,.78);color:#ddd7ce;font-size:9px;line-height:1.5;letter-spacing:.12em;text-transform:uppercase;backdrop-filter:blur(10px)}@media(max-width:600px){.about-image figcaption{left:16px;right:16px;bottom:16px;max-width:calc(100% - 32px);font-size:8px}}
+.social{flex-direction:column;align-items:flex-start}.social a{min-height:24px}
