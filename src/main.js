@@ -491,6 +491,7 @@ function initAdmin() {
   const content=document.querySelector('#admin-content')
   const modal=document.querySelector('.admin-modal')
   document.querySelector('.header-actions')?.insertAdjacentHTML('afterbegin','<a class="admin-logout" href="/admin/logout">Abmelden</a>')
+  document.querySelector('.admin-side nav')?.insertAdjacentHTML('beforeend','<a class="admin-nav-logout" href="/admin/logout"><span>↪</span>Abmelden</a>')
   const adminSide=document.querySelector('.admin-side'),mobileMenu=document.querySelector('[data-mobile-menu]')
   const setMobileMenu=open=>{adminSide?.classList.toggle('mobile-nav-open',open);mobileMenu?.setAttribute('aria-expanded',String(open));document.body.classList.toggle('admin-nav-lock',open)}
   mobileMenu?.addEventListener('click',()=>setMobileMenu(!adminSide.classList.contains('mobile-nav-open')))
