@@ -5,6 +5,8 @@ import './calendar.css'
 import './admin-sections.css'
 import './admin-legibility.css'
 import './customer-notes.css'
+import QRCode from 'qrcode'
+import './customer-contact.css'
 import signatureUrl from './assets/Signatur2.png?inline'
 
 const portfolio = [
@@ -170,6 +172,21 @@ function appointmentView(day){
   </div>`
 }
 const customerKey = item => (item.email||item.phone||item.clientName||item.name||'').toLowerCase()
+const normalizePhone = value => {
+  const raw=String(value||'').trim().replace(/[^\d+]/g,'')
+  if(raw.startsWith('+'))return `+${raw.slice(1).replace(/\D/g,'')}`
+  const digits=raw.replace(/\D/g,'')
+  if(digits.startsWith('0'))return `+49${digits.slice(1)}`
+  if(digits.startsWith('49'))return `+${digits}`
+  return digits?`+49${digits}`:''
+}
+const formatPhoneBlocks = value => {
+  const phone=normalizePhone(value)
+  if(!phone)return 'Nicht hinterlegt'
+  const country=phone.startsWith('+49')?'+49':phone.match(/^\+\d{1,3}/)?.[0]||''
+  const rest=phone.slice(country.length)
+  return [country,...(rest.match(/.{1,4}/g)||[])].filter(Boolean).join(' ')
+}
 function realAppointmentView(id) {
   const item=appointments.find(appointment=>appointment.id===id)
   if(!item)return `<div class="detail-top"><button class="detail-back" data-back-dashboard>← Kalender</button></div><div class="request-empty"><span>404</span><h3>Termin nicht gefunden.</h3><p>Die Terminakte ist nicht mehr vorhanden.</p></div>`
@@ -197,6 +214,7 @@ function appointmentFilesView(){return `<div class="admin-title"><div><span clas
 function customerRecords(){return [...demoRequests,...appointments].reduce((map,item)=>{const key=customerKey(item);if(!key)return map;const current=map.get(key)||{key,name:item.clientName||item.name,email:item.email,phone:item.phone,requests:[],appointments:[]};if(item.id?.startsWith('APT-'))current.appointments.push(item);else current.requests.push(item);current.email=current.email||item.email;current.phone=current.phone||item.phone;map.set(key,current);return map},new Map())}
 function customersView(){const customers=[...customerRecords().values()].sort((a,b)=>a.name.localeCompare(b.name,'de'));return `<div class="admin-title"><div><span class="admin-kicker">KARTEI</span><h2>Kunden</h2><p>Kontaktdaten und Projektverlauf aus Anfragen und Terminakten.</p></div><b class="customer-count">${customers.length}</b></div><div class="customer-list">${customers.length?customers.map(customer=>`<button data-customer="${encodeURIComponent(customer.key)}"><span class="customer-avatar">${customer.name.split(/\s+/).map(part=>part[0]).slice(0,2).join('').toUpperCase()}</span><div><b>${customer.name}</b><small>${customer.email||'Keine E-Mail'} · ${customer.phone||'Keine Telefonnummer'}</small></div><div><b>${customer.requests.length}</b><small>Anfragen</small></div><div><b>${customer.appointments.length}</b><small>Termine</small></div></button>`).join(''):'<div class="request-empty"><span>00</span><h3>Noch keine Kunden.</h3><p>Kunden werden automatisch aus Anfragen und Terminen übernommen.</p></div>'}</div>`}
 function customerDetailView(encodedKey){const key=decodeURIComponent(encodedKey);const customer=customerRecords().get(key);if(!customer)return `<div class="detail-top"><button class="detail-back" data-back-customers>← Kunden</button></div><div class="request-empty"><span>404</span><h3>Kunde nicht gefunden.</h3></div>`;const notes=customerNotes.filter(note=>note.customerKey===key).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));return `<div class="detail-top"><button class="detail-back" data-back-customers>← Kunden</button><div><a class="save-settings" href="mailto:${customer.email||''}">Nachricht senden</a></div></div><div class="customer-hero"><span class="customer-avatar">${customer.name.split(/\s+/).map(part=>part[0]).slice(0,2).join('').toUpperCase()}</span><div><span class="admin-kicker">KUNDENAKTE</span><h2>${customer.name}</h2><p>${customer.email||'Keine E-Mail'} · ${customer.phone||'Keine Telefonnummer'}</p></div></div><section class="customer-notes"><div class="customer-notes-head"><div><span class="admin-kicker">INTERNE NOTIZEN</span><h3>Notizen</h3></div><b>${notes.length}</b></div><form data-customer-note-form data-customer-key="${encodeURIComponent(key)}"><div><label>KATEGORIE<select name="category"><option>Allgemein</option><option>Motiv & Stil</option><option>Gesundheit</option><option>Vorbereitung</option><option>Nachsorge</option><option>Zahlung</option></select></label><label>RELEVANZ<select name="relevance"><option value="normal">Normal</option><option value="wichtig">Wichtig</option><option value="kritisch">Kritisch</option></select></label></div><textarea required name="text" rows="3" placeholder="Interne Kundennotiz …"></textarea><p class="modal-form-error" role="alert"></p><button class="save-settings" type="submit">Notiz speichern →</button></form><div class="customer-note-list">${notes.length?notes.map(note=>`<article class="relevance-${note.relevance}"><div><span>${note.category}</span><i>${note.relevance}</i></div><p>${note.text}</p><small>${new Intl.DateTimeFormat('de-DE',{dateStyle:'medium',timeStyle:'short'}).format(new Date(note.createdAt))}</small></article>`).join(''):'<div class="today-empty">Noch keine Notizen vorhanden.</div>'}</div></section><div class="customer-history"><section><h3>Anfragen <b>${customer.requests.length}</b></h3>${customer.requests.length?customer.requests.map(request=>`<button data-request="${demoRequests.indexOf(request)}"><span><b>${request.style||'Tattoo-Anfrage'}</b><small>${request.placement||'Körperstelle offen'} · ${request.size||'Größe offen'}</small></span><i>${request.status} ↗</i></button>`).join(''):'<p>Keine Anfragen vorhanden.</p>'}</section><section><h3>Terminakten <b>${customer.appointments.length}</b></h3>${customer.appointments.length?customer.appointments.map(item=>`<button data-appointment="${item.id}"><span><b>${new Intl.DateTimeFormat('de-DE',{dateStyle:'medium'}).format(new Date(item.start))}</b><small>${item.style||'Tattoo-Termin'} · ${item.placement||'Studio'}</small></span><i>Akte öffnen ↗</i></button>`).join(''):'<p>Keine Termine vorhanden.</p>'}</section></div>`}
+function renderCustomerContacts(encodedKey){const customer=customerRecords().get(decodeURIComponent(encodedKey));const hero=document.querySelector('.customer-hero');if(!customer||!hero)return;hero.insertAdjacentHTML('afterend',`<section class="customer-contact-cards"><article><span>E-MAIL</span><h3>${customer.email||'Nicht hinterlegt'}</h3><button class="secondary-action" data-email-contact="${encodedKey}" ${customer.email?'':'disabled'}>E-Mail senden</button></article><article><span>TELEFON</span><h3>${formatPhoneBlocks(customer.phone)}</h3><button class="secondary-action" data-call-contact="${encodedKey}" ${customer.phone?'':'disabled'}>Anrufen</button></article></section>`)}
 function currentAdminView() {
   const path = location.pathname.replace(/\/+$/, '')
   if (path.endsWith('/anfragen')) return 'requests'
@@ -529,7 +547,7 @@ function initAdmin() {
     try{
       const payload=Object.fromEntries(new FormData(form));payload.customerKey=decodeURIComponent(form.dataset.customerKey)
       const note=await createCustomerNote(payload);customerNotes.unshift(note)
-      content.innerHTML=customerDetailView(form.dataset.customerKey)
+      content.innerHTML=customerDetailView(form.dataset.customerKey);renderCustomerContacts(form.dataset.customerKey)
     }catch(error){form.querySelector('.modal-form-error').textContent='Notiz konnte nicht gespeichert werden.';submit.disabled=false;submit.textContent='Notiz speichern →'}
   })
   if (currentAdminView() === 'portfolio') initUploads()
@@ -545,8 +563,12 @@ function initAdmin() {
       openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">STUDIO-KALENDER</span><h2>Termin anlegen</h2><form data-appointment-form><label>NAME<input required name="clientName" placeholder="Vor- und Nachname"></label><div class="smtp-grid"><label>BEGINN<input required type="datetime-local" name="start" value="${localValue(date)}"></label><label>ENDE<input required type="datetime-local" name="end" value="${localValue(end)}"></label><label>STIL<input name="style" placeholder="z. B. Fineline"></label><label>KÖRPERSTELLE<input name="placement" placeholder="z. B. Unterarm"></label></div><label>NOTIZ<textarea name="notes" rows="5" placeholder="Vorbereitung, Motiv, Besonderheiten …"></textarea></label><p class="modal-form-error" role="alert"></p><button class="save-settings modal-send" type="submit">Termin speichern →</button></form>`)
       return
     }
+    const emailContact=e.target.closest('[data-email-contact]')
+    if(emailContact){const customer=customerRecords().get(decodeURIComponent(emailContact.dataset.emailContact));openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">KUNDENKONTAKT</span><h2>E-Mail senden</h2><label>AN<input value="${customer.email}" readonly></label><label>BETREFF<input value="Tattoo Sfumato · Deine Anfrage"></label><label>NACHRICHT<textarea rows="9">Hallo ${customer.name.split(' ')[0]},\n\n</textarea></label><a class="save-settings modal-send-link" href="mailto:${customer.email}?subject=${encodeURIComponent('Tattoo Sfumato · Deine Anfrage')}">Im Mailprogramm öffnen →</a>`);return}
+    const callContact=e.target.closest('[data-call-contact]')
+    if(callContact){const customer=customerRecords().get(decodeURIComponent(callContact.dataset.callContact));const phone=normalizePhone(customer.phone);openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">KUNDENKONTAKT</span><h2>Anrufen</h2><div class="call-modal"><div><span>TELEFONNUMMER</span><strong>${formatPhoneBlocks(phone)}</strong><a class="save-settings" href="tel:${phone}">Jetzt anrufen →</a></div><div class="call-qr"><div class="qr-loading">QR-Code wird erstellt …</div><small>Mit dem Handy scannen und direkt anrufen</small></div></div>`);QRCode.toDataURL(`tel:${phone}`,{width:260,margin:1,color:{dark:'#11110f',light:'#ffffff'}}).then(url=>{const target=modal.querySelector('.call-qr');if(target)target.innerHTML=`<img src="${url}" alt="QR-Code zum Anrufen von ${formatPhoneBlocks(phone)}"><small>Mit dem Handy scannen und direkt anrufen</small>`});return}
     const customerButton=e.target.closest('[data-customer]')
-    if(customerButton){const url=new URL('/admin/kunden/',location.origin);url.searchParams.set('kunde',customerButton.dataset.customer);if(location.href!==url.href)history.pushState(null,'',url);content.innerHTML=customerDetailView(customerButton.dataset.customer);return}
+    if(customerButton){const url=new URL('/admin/kunden/',location.origin);url.searchParams.set('kunde',customerButton.dataset.customer);if(location.href!==url.href)history.pushState(null,'',url);content.innerHTML=customerDetailView(customerButton.dataset.customer);renderCustomerContacts(customerButton.dataset.customer);return}
     if(e.target.closest('[data-back-customers]')){history.pushState(null,'','/admin/kunden/');content.innerHTML=customersView();return}
     if(e.target.closest('[data-calendar-prev]')){calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()-1,1);content.innerHTML=dashboardView();return}
     if(e.target.closest('[data-calendar-next]')){calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,1);content.innerHTML=dashboardView();return}
