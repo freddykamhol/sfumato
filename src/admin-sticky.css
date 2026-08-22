@@ -11,9 +11,69 @@
   backdrop-filter: blur(14px);
 }
 
+.admin-side nav a {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 13px;
+  padding: 13px 12px;
+  border-radius: 6px;
+  color: #77736d;
+  font-size: 12px;
+}
+
+.admin-side nav a:hover,
+.admin-side nav a.active {
+  color: #fff;
+  background: #201f1d;
+}
+
+.admin-side nav a > span {
+  width: 20px;
+  color: #70736b;
+  font-size: 9px;
+}
+
+.admin-side nav a > b {
+  margin-left: auto;
+  padding: 1px 6px;
+  border-radius: 20px;
+  background: var(--red);
+  color: #fff;
+  font-size: 9px;
+}
+
 @media (max-width: 800px) {
   .admin-main > header {
     height: 74px;
     padding: 0 16px;
+  }
+
+  .admin-side nav a {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 2px 5px;
+    border-radius: 7px;
+    font-size: 8px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .admin-side nav a > span {
+    width: auto;
+    font-size: 11px;
+  }
+
+  .admin-side nav a > b {
+    position: absolute;
+    top: 4px;
+    right: 18%;
+    min-width: 16px;
+    margin: 0;
+    text-align: center;
   }
 }

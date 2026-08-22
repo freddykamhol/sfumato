@@ -107,7 +107,15 @@ function settingsView(){return `<div class="admin-title"><div><span class="admin
   <section class="integration-card"><div class="integration-icon mail">✉</div><div><h3>SMTP E-Mail</h3><p>Rückfragen und Terminvorschläge direkt aus dem Adminpanel senden.</p></div><span class="connected">AKTIV</span><button data-smtp>SMTP konfigurieren</button></section>
   <section class="hours-card"><div class="settings-heading"><div><h3>Öffnungszeiten</h3><p>Basis für automatisch berechnete Terminvorschläge.</p></div><span>Europe/Berlin</span></div>${['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'].map((d,i)=>`<div class="hours-row"><label class="switch"><input type="checkbox" ${i!==0&&i!==5?'checked':''}><i></i></label><b>${d}</b><input type="time" value="10:00" ${i===0||i===5?'disabled':''}><span>bis</span><input type="time" value="18:00" ${i===0||i===5?'disabled':''}></div>`).join('')}<div class="hours-row"><label class="switch"><input type="checkbox"><i></i></label><b>Sonntag</b><span class="closed">Geschlossen</span></div></section>
   </div>`}
-function adminMarkup() { const welcome=adminWelcome(); return `<div class="admin-shell"><aside class="admin-side"><a class="brand" href="/"><span>TATTOO</span><i>·</i><span>SFUMATO</span></a><p>STUDIO OS</p><nav><button class="active" data-view="dashboard"><span>⌂</span>Dashboard</button><button data-view="requests"><span>01</span>Anfragen <b>${demoRequests.length}</b></button><button data-view="portfolio"><span>02</span>Referenzen</button><button data-view="settings"><span>03</span>Einstellungen</button></nav><div class="admin-user"><div class="avatar">TS</div><span><b>Studio Sfumato</b><small>Administrator</small></span></div><a href="/" class="back">← Zur Website</a></aside><main class="admin-main"><header><div><p>${welcome.date}</p><h1>${welcome.greeting}</h1></div><div class="header-actions"><button aria-label="Benachrichtigungen">●</button><div class="avatar">TS</div></div></header><section id="admin-content">${dashboardView()}</section></main><div class="admin-modal" aria-hidden="true"></div></div>` }
+function currentAdminView() {
+  const path = location.pathname.replace(/\/+$/, '')
+  if (path.endsWith('/anfragen')) return 'requests'
+  if (path.endsWith('/referenzen')) return 'portfolio'
+  if (path.endsWith('/einstellungen')) return 'settings'
+  return 'dashboard'
+}
+function adminViewMarkup(view) { return view==='requests'?requestsView():view==='portfolio'?portfolioView():view==='settings'?settingsView():dashboardView() }
+function adminMarkup() { const welcome=adminWelcome(); const view=currentAdminView(); return `<div class="admin-shell"><aside class="admin-side"><a class="brand" href="/"><span>TATTOO</span><i>·</i><span>SFUMATO</span></a><p>STUDIO OS</p><nav><a class="${view==='dashboard'?'active':''}" data-view="dashboard" href="/admin/"><span>⌂</span>Dashboard</a><a class="${view==='requests'?'active':''}" data-view="requests" href="/admin/anfragen/"><span>01</span>Anfragen <b>${demoRequests.length}</b></a><a class="${view==='portfolio'?'active':''}" data-view="portfolio" href="/admin/referenzen/"><span>02</span>Referenzen</a><a class="${view==='settings'?'active':''}" data-view="settings" href="/admin/einstellungen/"><span>03</span>Einstellungen</a></nav><div class="admin-user"><div class="avatar">TS</div><span><b>Studio Sfumato</b><small>Administrator</small></span></div><a href="/" class="back">← Zur Website</a></aside><main class="admin-main"><header><div><p>${welcome.date}</p><h1>${welcome.greeting}</h1></div><div class="header-actions"><button aria-label="Benachrichtigungen">●</button><div class="avatar">TS</div></div></header><section id="admin-content">${adminViewMarkup(view)}</section></main><div class="admin-modal" aria-hidden="true"></div></div>` }
 
 function initSite() {
   const menuButton = document.querySelector('.menu')
@@ -302,11 +310,7 @@ function initAdmin() {
       e.target.textContent='✓ Im Kalender eingetragen';e.target.disabled=true
     } else if(e.target.closest('[data-close]')) closeModal()
   })
-  document.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => {
-    document.querySelectorAll('[data-view]').forEach(b=>b.classList.remove('active')); btn.classList.add('active')
-    content.innerHTML=btn.dataset.view==='dashboard'?dashboardView():btn.dataset.view==='portfolio'?portfolioView():btn.dataset.view==='settings'?settingsView():requestsView()
-    if(btn.dataset.view==='portfolio') initUploads()
-  }))
+  if (currentAdminView() === 'portfolio') initUploads()
   content.addEventListener('click', e => {
     const appointment=e.target.closest('[data-appointment]')
     if(appointment){content.innerHTML=appointmentView(appointment.dataset.appointment);return}
@@ -392,7 +396,7 @@ function render(){
     initPasswordGate()
     return
   }
-  const admin=location.pathname.replace(/\/+$/, '')==='/admin'; document.querySelector('#app').innerHTML=admin?adminMarkup():siteMarkup(); admin?initAdmin():initSite(); window.scrollTo(0,0)
+  const admin=location.pathname.replace(/\/+$/, '').startsWith('/admin'); document.querySelector('#app').innerHTML=admin?adminMarkup():siteMarkup(); admin?initAdmin():initSite(); window.scrollTo(0,0)
 }
 window.addEventListener('hashchange', () => {
   const target = location.hash && document.querySelector(location.hash)

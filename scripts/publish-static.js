@@ -31,8 +31,10 @@ for (const entry of readdirSync(distRoot)) {
   }
 }
 
-const adminRoot = join(projectRoot, 'admin')
-mkdirSync(adminRoot, { recursive: true })
-copyFileSync(join(distRoot, 'index.html'), join(adminRoot, 'index.html'))
+for (const route of ['admin', 'admin/anfragen', 'admin/referenzen', 'admin/einstellungen']) {
+  const routeRoot = join(projectRoot, route)
+  mkdirSync(routeRoot, { recursive: true })
+  copyFileSync(join(distRoot, 'index.html'), join(routeRoot, 'index.html'))
+}
 
 console.log(`[build] Static root published: ${basename(projectRoot)}`)
