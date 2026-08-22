@@ -8,6 +8,7 @@ import './customer-notes.css'
 import QRCode from 'qrcode'
 import './customer-contact.css'
 import './modal-center.css'
+import './lightbox.css'
 import signatureUrl from './assets/Signatur2.png?inline'
 
 const portfolio = [
@@ -760,6 +761,20 @@ function initPasswordGate() {
   })
 }
 
+function initLightbox(){
+  if(document.querySelector('.system-lightbox'))return
+  const lightbox=document.createElement('div');lightbox.className='system-lightbox';lightbox.setAttribute('aria-hidden','true');lightbox.innerHTML=`<div class="lightbox-backdrop" data-lightbox-close></div><div class="lightbox-stage" role="dialog" aria-modal="true" aria-label="Bildansicht"><header><span data-lightbox-count></span><button data-lightbox-close aria-label="Lightbox schließen">×</button></header><button class="lightbox-nav prev" data-lightbox-prev aria-label="Vorheriges Bild">‹</button><figure><img alt=""><figcaption></figcaption></figure><button class="lightbox-nav next" data-lightbox-next aria-label="Nächstes Bild">›</button></div>`;document.body.append(lightbox)
+  let images=[],index=0,touchStart=0
+  const eligible=image=>image instanceof HTMLImageElement&&!image.closest('[data-protected-signature],.call-qr-code')&&!image.dataset.noLightbox&&image.src
+  const update=()=>{const source=images[index],target=lightbox.querySelector('figure img'),caption=source.alt||source.closest('a,article')?.querySelector('small,b,h3')?.textContent||'Bild';target.src=source.currentSrc||source.src;target.alt=caption;lightbox.querySelector('figcaption').textContent=caption;lightbox.querySelector('[data-lightbox-count]').textContent=`${index+1} / ${images.length}`;lightbox.classList.toggle('single',images.length<2)}
+  const close=()=>{lightbox.classList.remove('open');lightbox.setAttribute('aria-hidden','true');document.documentElement.classList.remove('lightbox-open')}
+  const move=direction=>{index=(index+direction+images.length)%images.length;update()}
+  document.addEventListener('click',event=>{const image=event.target.closest('img');if(!eligible(image))return;event.preventDefault();event.stopPropagation();const group=image.closest('.gallery,.request-references,.admin-gallery,.assigned-assets,.reference-previews,.upload-previews')||document;images=[...group.querySelectorAll('img')].filter(eligible);index=Math.max(0,images.indexOf(image));update();lightbox.classList.add('open');lightbox.setAttribute('aria-hidden','false');document.documentElement.classList.add('lightbox-open');lightbox.querySelector('[data-lightbox-close]').focus()})
+  lightbox.addEventListener('click',event=>{if(event.target.closest('[data-lightbox-close]'))close();else if(event.target.closest('[data-lightbox-prev]'))move(-1);else if(event.target.closest('[data-lightbox-next]'))move(1)})
+  lightbox.addEventListener('touchstart',event=>{touchStart=event.touches[0].clientX},{passive:true});lightbox.addEventListener('touchend',event=>{const distance=event.changedTouches[0].clientX-touchStart;if(Math.abs(distance)>55)move(distance>0?-1:1)},{passive:true})
+  document.addEventListener('keydown',event=>{if(!lightbox.classList.contains('open'))return;if(event.key==='Escape')close();if(event.key==='ArrowLeft')move(-1);if(event.key==='ArrowRight')move(1)})
+}
+
 function render(){
   const serverAccess = document.cookie.split(';').some(cookie => cookie.trim() === 'sfumato_site_client=1')
   if (!serverAccess && sessionStorage.getItem(ACCESS_KEY) !== 'true') {
@@ -767,7 +782,7 @@ function render(){
     initPasswordGate()
     return
   }
-  const admin=location.pathname.replace(/\/+$/, '').startsWith('/admin'); document.querySelector('#app').innerHTML=admin?adminMarkup():siteMarkup(); admin?initAdmin():initSite(); window.scrollTo(0,0)
+  const admin=location.pathname.replace(/\/+$/, '').startsWith('/admin'); document.querySelector('#app').innerHTML=admin?adminMarkup():siteMarkup(); admin?initAdmin():initSite();initLightbox();window.scrollTo(0,0)
 }
 window.addEventListener('hashchange', () => {
   const target = location.hash && document.querySelector(location.hash)
