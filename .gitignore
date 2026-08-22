@@ -13,6 +13,7 @@ dist-ssr
 *.local
 data/requests.json
 data/appointments.json
+data/customer-notes.json
 data/uploads/
 
 # Editor directories and files

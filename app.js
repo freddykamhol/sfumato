@@ -13,6 +13,7 @@ const authToken = createHmac('sha256', sitePassword).update('sfumato-site-access
 const dataDirectory = join(root, 'data')
 const requestsFile = join(dataDirectory, 'requests.json')
 const appointmentsFile = join(dataDirectory, 'appointments.json')
+const customerNotesFile = join(dataDirectory, 'customer-notes.json')
 const uploadsDirectory = join(dataDirectory, 'uploads')
 
 const readRequests = async () => {
@@ -30,6 +31,14 @@ const readAppointments = async () => {
 const saveAppointments = async appointments => {
   await mkdir(dataDirectory, { recursive: true })
   await writeFile(appointmentsFile, JSON.stringify(appointments, null, 2), 'utf8')
+}
+const readCustomerNotes = async () => {
+  try { return JSON.parse(await readFile(customerNotesFile, 'utf8')) }
+  catch (error) { if (error.code === 'ENOENT') return []; throw error }
+}
+const saveCustomerNotes = async notes => {
+  await mkdir(dataDirectory, { recursive: true })
+  await writeFile(customerNotesFile, JSON.stringify(notes, null, 2), 'utf8')
 }
 const cleanText = (value, max = 1000) => String(value || '').replace(/[<>]/g, '').trim().slice(0, max)
 const sendJson = (response, status, payload) => {
@@ -110,6 +119,27 @@ createServer((request, response) => {
 
   if (pathname === '/api/appointments' && request.method === 'GET') {
     readAppointments().then(appointments => sendJson(response, 200, appointments)).catch(() => sendJson(response, 500, { error: 'Termine konnten nicht geladen werden.' }))
+    return
+  }
+
+  if (pathname === '/api/customer-notes' && request.method === 'GET') {
+    readCustomerNotes().then(notes => sendJson(response, 200, notes)).catch(() => sendJson(response, 500, { error: 'Kundennotizen konnten nicht geladen werden.' }))
+    return
+  }
+
+  if (pathname === '/api/customer-notes' && request.method === 'POST') {
+    let body = ''
+    request.on('data', chunk => { if (body.length < 100000) body += chunk })
+    request.on('end', async () => {
+      try {
+        const input = JSON.parse(body)
+        const allowedCategories = ['Allgemein','Motiv & Stil','Gesundheit','Vorbereitung','Nachsorge','Zahlung']
+        const allowedRelevance = ['normal','wichtig','kritisch']
+        const entry = { id: `NOTE-${Date.now().toString(36).toUpperCase()}`, customerKey: cleanText(input.customerKey, 220).toLowerCase(), category: allowedCategories.includes(input.category) ? input.category : 'Allgemein', relevance: allowedRelevance.includes(input.relevance) ? input.relevance : 'normal', text: cleanText(input.text, 4000), createdAt: new Date().toISOString() }
+        if (!entry.customerKey || !entry.text) return sendJson(response, 400, { error: 'Kunde und Notiztext werden benötigt.' })
+        const notes = await readCustomerNotes(); notes.unshift(entry); await saveCustomerNotes(notes.slice(0, 5000)); sendJson(response, 201, entry)
+      } catch { sendJson(response, 400, { error: 'Kundennotiz konnte nicht gespeichert werden.' }) }
+    })
     return
   }
 

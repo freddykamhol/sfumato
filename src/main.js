@@ -4,6 +4,7 @@ import './uploads.css'
 import './calendar.css'
 import './admin-sections.css'
 import './admin-legibility.css'
+import './customer-notes.css'
 import signatureUrl from './assets/Signatur2.png?inline'
 
 const portfolio = [
@@ -13,6 +14,7 @@ const portfolio = [
 ]
 const demoRequests = []
 const appointments = []
+const customerNotes = []
 let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
 const LOCAL_APPOINTMENTS_KEY = 'sfumato-appointments'
 const readLocalAppointments = () => {
@@ -31,6 +33,23 @@ const createAppointment = async payload => {
   const localAppointment={...payload,id:`APT-LOCAL-${Date.now().toString(36).toUpperCase()}`,createdAt:new Date().toISOString(),source:'local'}
   saveLocalAppointment(localAppointment)
   return localAppointment
+}
+const LOCAL_CUSTOMER_NOTES_KEY = 'sfumato-customer-notes'
+const readLocalCustomerNotes = () => {
+  try { return JSON.parse(localStorage.getItem(LOCAL_CUSTOMER_NOTES_KEY) || '[]') }
+  catch { return [] }
+}
+const saveLocalCustomerNote = note => localStorage.setItem(LOCAL_CUSTOMER_NOTES_KEY, JSON.stringify([note,...readLocalCustomerNotes()].slice(0,1000)))
+const createCustomerNote = async payload => {
+  try {
+    const response=await fetch('/api/customer-notes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    const text=await response.text();let result
+    try{result=text?JSON.parse(text):null}catch{result=null}
+    if(response.ok&&result?.id)return result
+  }catch{}
+  const localNote={...payload,id:`NOTE-LOCAL-${Date.now().toString(36).toUpperCase()}`,createdAt:new Date().toISOString()}
+  saveLocalCustomerNote(localNote)
+  return localNote
 }
 const LOCAL_REQUESTS_KEY = 'sfumato-booking-requests'
 const readLocalRequests = () => {
@@ -177,7 +196,7 @@ function appointmentFormView(){const date=new Date();date.setMinutes(Math.ceil(d
 function appointmentFilesView(){return `<div class="admin-title"><div><span class="admin-kicker">ARCHIV</span><h2>Terminakten</h2><p>Alle geplanten und vergangenen Studio-Termine an einem Ort.</p></div><a class="save-settings" href="/admin/termin-neu/">+ Neuer Termin</a></div><div class="appointment-files-list">${appointments.length?appointments.map(item=>{const start=new Date(item.start);return `<button data-appointment="${item.id}"><time><b>${String(start.getDate()).padStart(2,'0')}</b><small>${new Intl.DateTimeFormat('de-DE',{month:'short',year:'numeric'}).format(start)}</small></time><span><b>${item.clientName}</b><small>${item.style||'Tattoo-Termin'} · ${item.placement||'Studio'}</small></span><span><b>${new Intl.DateTimeFormat('de-DE',{hour:'2-digit',minute:'2-digit'}).format(start)} Uhr</b><small>${Math.max(0,(new Date(item.end)-start)/3600000).toLocaleString('de-DE')} Stunden</small></span><i>Akte öffnen ↗</i></button>`}).join(''):'<div class="request-empty"><span>00</span><h3>Noch keine Terminakten.</h3><p>Neu angelegte Termine erscheinen automatisch hier.</p></div>'}</div>`}
 function customerRecords(){return [...demoRequests,...appointments].reduce((map,item)=>{const key=customerKey(item);if(!key)return map;const current=map.get(key)||{key,name:item.clientName||item.name,email:item.email,phone:item.phone,requests:[],appointments:[]};if(item.id?.startsWith('APT-'))current.appointments.push(item);else current.requests.push(item);current.email=current.email||item.email;current.phone=current.phone||item.phone;map.set(key,current);return map},new Map())}
 function customersView(){const customers=[...customerRecords().values()].sort((a,b)=>a.name.localeCompare(b.name,'de'));return `<div class="admin-title"><div><span class="admin-kicker">KARTEI</span><h2>Kunden</h2><p>Kontaktdaten und Projektverlauf aus Anfragen und Terminakten.</p></div><b class="customer-count">${customers.length}</b></div><div class="customer-list">${customers.length?customers.map(customer=>`<button data-customer="${encodeURIComponent(customer.key)}"><span class="customer-avatar">${customer.name.split(/\s+/).map(part=>part[0]).slice(0,2).join('').toUpperCase()}</span><div><b>${customer.name}</b><small>${customer.email||'Keine E-Mail'} · ${customer.phone||'Keine Telefonnummer'}</small></div><div><b>${customer.requests.length}</b><small>Anfragen</small></div><div><b>${customer.appointments.length}</b><small>Termine</small></div></button>`).join(''):'<div class="request-empty"><span>00</span><h3>Noch keine Kunden.</h3><p>Kunden werden automatisch aus Anfragen und Terminen übernommen.</p></div>'}</div>`}
-function customerDetailView(encodedKey){const key=decodeURIComponent(encodedKey);const customer=customerRecords().get(key);if(!customer)return `<div class="detail-top"><button class="detail-back" data-back-customers>← Kunden</button></div><div class="request-empty"><span>404</span><h3>Kunde nicht gefunden.</h3></div>`;return `<div class="detail-top"><button class="detail-back" data-back-customers>← Kunden</button><div><a class="save-settings" href="mailto:${customer.email||''}">Nachricht senden</a></div></div><div class="customer-hero"><span class="customer-avatar">${customer.name.split(/\s+/).map(part=>part[0]).slice(0,2).join('').toUpperCase()}</span><div><span class="admin-kicker">KUNDENAKTE</span><h2>${customer.name}</h2><p>${customer.email||'Keine E-Mail'} · ${customer.phone||'Keine Telefonnummer'}</p></div></div><div class="customer-history"><section><h3>Anfragen <b>${customer.requests.length}</b></h3>${customer.requests.length?customer.requests.map(request=>`<button data-request="${demoRequests.indexOf(request)}"><span><b>${request.style||'Tattoo-Anfrage'}</b><small>${request.placement||'Körperstelle offen'} · ${request.size||'Größe offen'}</small></span><i>${request.status} ↗</i></button>`).join(''):'<p>Keine Anfragen vorhanden.</p>'}</section><section><h3>Terminakten <b>${customer.appointments.length}</b></h3>${customer.appointments.length?customer.appointments.map(item=>`<button data-appointment="${item.id}"><span><b>${new Intl.DateTimeFormat('de-DE',{dateStyle:'medium'}).format(new Date(item.start))}</b><small>${item.style||'Tattoo-Termin'} · ${item.placement||'Studio'}</small></span><i>Akte öffnen ↗</i></button>`).join(''):'<p>Keine Termine vorhanden.</p>'}</section></div>`}
+function customerDetailView(encodedKey){const key=decodeURIComponent(encodedKey);const customer=customerRecords().get(key);if(!customer)return `<div class="detail-top"><button class="detail-back" data-back-customers>← Kunden</button></div><div class="request-empty"><span>404</span><h3>Kunde nicht gefunden.</h3></div>`;const notes=customerNotes.filter(note=>note.customerKey===key).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));return `<div class="detail-top"><button class="detail-back" data-back-customers>← Kunden</button><div><a class="save-settings" href="mailto:${customer.email||''}">Nachricht senden</a></div></div><div class="customer-hero"><span class="customer-avatar">${customer.name.split(/\s+/).map(part=>part[0]).slice(0,2).join('').toUpperCase()}</span><div><span class="admin-kicker">KUNDENAKTE</span><h2>${customer.name}</h2><p>${customer.email||'Keine E-Mail'} · ${customer.phone||'Keine Telefonnummer'}</p></div></div><section class="customer-notes"><div class="customer-notes-head"><div><span class="admin-kicker">INTERNE NOTIZEN</span><h3>Notizen</h3></div><b>${notes.length}</b></div><form data-customer-note-form data-customer-key="${encodeURIComponent(key)}"><div><label>KATEGORIE<select name="category"><option>Allgemein</option><option>Motiv & Stil</option><option>Gesundheit</option><option>Vorbereitung</option><option>Nachsorge</option><option>Zahlung</option></select></label><label>RELEVANZ<select name="relevance"><option value="normal">Normal</option><option value="wichtig">Wichtig</option><option value="kritisch">Kritisch</option></select></label></div><textarea required name="text" rows="3" placeholder="Interne Kundennotiz …"></textarea><p class="modal-form-error" role="alert"></p><button class="save-settings" type="submit">Notiz speichern →</button></form><div class="customer-note-list">${notes.length?notes.map(note=>`<article class="relevance-${note.relevance}"><div><span>${note.category}</span><i>${note.relevance}</i></div><p>${note.text}</p><small>${new Intl.DateTimeFormat('de-DE',{dateStyle:'medium',timeStyle:'short'}).format(new Date(note.createdAt))}</small></article>`).join(''):'<div class="today-empty">Noch keine Notizen vorhanden.</div>'}</div></section><div class="customer-history"><section><h3>Anfragen <b>${customer.requests.length}</b></h3>${customer.requests.length?customer.requests.map(request=>`<button data-request="${demoRequests.indexOf(request)}"><span><b>${request.style||'Tattoo-Anfrage'}</b><small>${request.placement||'Körperstelle offen'} · ${request.size||'Größe offen'}</small></span><i>${request.status} ↗</i></button>`).join(''):'<p>Keine Anfragen vorhanden.</p>'}</section><section><h3>Terminakten <b>${customer.appointments.length}</b></h3>${customer.appointments.length?customer.appointments.map(item=>`<button data-appointment="${item.id}"><span><b>${new Intl.DateTimeFormat('de-DE',{dateStyle:'medium'}).format(new Date(item.start))}</b><small>${item.style||'Tattoo-Termin'} · ${item.placement||'Studio'}</small></span><i>Akte öffnen ↗</i></button>`).join(''):'<p>Keine Termine vorhanden.</p>'}</section></div>`}
 function currentAdminView() {
   const path = location.pathname.replace(/\/+$/, '')
   if (path.endsWith('/anfragen')) return 'requests'
@@ -454,6 +473,19 @@ function initAdmin() {
     else if (currentAdminView() === 'customers') content.innerHTML = customersView()
     openAdminDeepLink()
   })
+  fetch('/api/customer-notes', { headers: { Accept: 'application/json' } }).then(async response => {
+    const text=await response.text();if(!response.ok||!text)throw new Error()
+    return JSON.parse(text)
+  }).then(notes => {
+    const merged=[...notes,...readLocalCustomerNotes()].filter((note,index,all)=>all.findIndex(item=>item.id===note.id)===index)
+    customerNotes.splice(0,customerNotes.length,...merged)
+    if(currentAdminView()==='customers')content.innerHTML=customersView()
+    openAdminDeepLink()
+  }).catch(()=>{
+    customerNotes.splice(0,customerNotes.length,...readLocalCustomerNotes())
+    if(currentAdminView()==='customers')content.innerHTML=customersView()
+    openAdminDeepLink()
+  })
   const openModal=html=>{modal.innerHTML=`<div class="modal-backdrop" data-close></div><section class="modal-sheet">${html}</section>`;modal.classList.add('open');modal.setAttribute('aria-hidden','false')}
   const closeModal=()=>{modal.classList.remove('open');modal.setAttribute('aria-hidden','true');const url=new URL(location.href);url.searchParams.delete('aktion');history.replaceState(null,'',url)}
   modal.addEventListener('click',e=>{
@@ -488,6 +520,17 @@ function initAdmin() {
       const result=await createAppointment(payload)
       appointments.push(result);appointments.sort((a,b)=>new Date(a.start)-new Date(b.start));location.href=`/admin/terminakten/?termin=${encodeURIComponent(result.id)}`
     }catch(error){form.querySelector('.modal-form-error').textContent=error.message;submit.disabled=false;submit.textContent='Termin speichern →'}
+  })
+  content.addEventListener('submit', async e => {
+    const form=e.target.closest('[data-customer-note-form]')
+    if(!form)return
+    e.preventDefault()
+    const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Wird gespeichert …'
+    try{
+      const payload=Object.fromEntries(new FormData(form));payload.customerKey=decodeURIComponent(form.dataset.customerKey)
+      const note=await createCustomerNote(payload);customerNotes.unshift(note)
+      content.innerHTML=customerDetailView(form.dataset.customerKey)
+    }catch(error){form.querySelector('.modal-form-error').textContent='Notiz konnte nicht gespeichert werden.';submit.disabled=false;submit.textContent='Notiz speichern →'}
   })
   if (currentAdminView() === 'portfolio') initUploads()
   content.addEventListener('click', e => {
