@@ -73,7 +73,8 @@ const mimeTypes = {
   '.css': 'text/css; charset=utf-8', '.html': 'text/html; charset=utf-8', '.ico': 'image/x-icon',
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml',
-  '.webp': 'image/webp', '.woff': 'font/woff', '.woff2': 'font/woff2',
+  '.txt': 'text/plain; charset=utf-8', '.webp': 'image/webp', '.woff': 'font/woff', '.woff2': 'font/woff2',
+  '.xml': 'application/xml; charset=utf-8',
 }
 
 // Never prevent Passenger/Plesk from binding the HTTP server because a persisted
@@ -281,7 +282,7 @@ createServer(async (request, response) => {
   const extension = extname(filePath).toLowerCase()
   response.writeHead(200, {
     'Content-Type': mimeTypes[extension] || 'application/octet-stream',
-    'Cache-Control': extension === '.html' ? 'no-cache' : 'public, max-age=31536000, immutable',
+    'Cache-Control': ['.html', '.txt', '.xml'].includes(extension) ? 'no-cache' : 'public, max-age=31536000, immutable',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',

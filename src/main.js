@@ -11,7 +11,7 @@ import './modal-center.css'
 import './lightbox.css'
 import './admin-mobile.css'
 import './references.css'
-import signatureUrl from './assets/Signatur2.png?inline'
+import signatureUrl from './assets/Signatur2.webp'
 
 const portfolio = []
 localStorage.removeItem('sfumato-portfolio')
@@ -117,7 +117,7 @@ const adminWelcome = () => {
 
 const publishedPortfolio=()=>portfolio.filter(item=>item.published!==false).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)||(b.order||0)-(a.order||0))
 const homepagePortfolio=()=>{const published=publishedPortfolio(),highlights=published.filter(item=>item.featured).slice(0,3);return [...highlights,...published.filter(item=>!highlights.some(highlight=>highlight.id===item.id))].slice(0,3)}
-const publicReferenceCard=(item,index)=>`<article class="work-card reveal" style="--pos:${item.position||'50% 50%'}"><div class="work-image"><img src="${item.image||'/studio-hero.png'}" alt="${item.title}"><span>${String(index+1).padStart(2,'0')}</span></div><div><h3>${item.title}</h3><p>${item.type||[item.style,item.placement].filter(Boolean).join(' · ')}</p>${item.description?`<small>${item.description}</small>`:''}</div></article>`
+const publicReferenceCard=(item,index)=>`<article class="work-card reveal" style="--pos:${item.position||'50% 50%'}"><div class="work-image"><img src="${item.image||'/studio-hero.webp'}" alt="${item.title} – Tattoo Sfumato Einbeck" loading="lazy" decoding="async"><span>${String(index+1).padStart(2,'0')}</span></div><div><h3>${item.title}</h3><p>${item.type||[item.style,item.placement].filter(Boolean).join(' · ')}</p>${item.description?`<small>${item.description}</small>`:''}</div></article>`
 
 function siteMarkup() {
   return `
@@ -137,7 +137,7 @@ function siteMarkup() {
           <div class="hero-actions"><a class="button primary" href="#termin">Projekt starten ${arrow}</a><a class="text-link" href="#arbeiten">Arbeiten entdecken <span>↓</span></a></div>
         </div>
         <div class="hero-visual reveal">
-          <img src="/studio-hero.png" alt="Tattoo Artist bei einer detailreichen Tattoo-Arbeit">
+          <img src="/studio-hero.webp" alt="Tattoo Artist von Tattoo Sfumato bei einer detailreichen Tattoo-Arbeit in Einbeck" width="1023" height="1537" fetchpriority="high" decoding="async">
           <div class="image-index"><b>01</b><span></span><small>03</small></div>
         </div>
         <div class="hero-stamp"><b>SFUMATO</b><span>CUSTOM TATTOOING<br>EINBECK · DE</span></div>
@@ -149,11 +149,11 @@ function siteMarkup() {
         <div class="section-head"><div><p class="section-no">[ 02 — AUSGEWÄHLTE ARBEITEN ]</p><h2>Selected <em>work.</em></h2></div><p>Realistic, Microrealism & Fineline — detailgenau, individuell und für deinen Körper entworfen.</p></div>
         <div class="gallery" data-home-references>${homepagePortfolio().map(publicReferenceCard).join('')}</div><div class="all-references-link"><a class="button primary" href="/referenzen/">Alle Referenzen ansehen ${arrow}</a></div>
       </section>
-      <section id="about" class="about section-pad"><div class="about-image"><img src="/studio-hero.png" alt="Detail aus dem Tattoo-Studio Sfumato"></div><div class="about-copy"><p class="section-no">[ 03 — TATTOO SFUMATO ]</p><h2>Handwerk trifft<br><em>Haltung.</em></h2><p>Bei Tattoo Sfumato treffen professionelles Handwerk und eine familiäre Atmosphäre aufeinander. Wir arbeiten konzentriert und mit höchstem Anspruch — dabei bleibt der Umgang persönlich, locker und ganz ohne steife Studio-Vibes.</p><blockquote>„Sfumato bedeutet so viel wie ‚in Rauch aufgehen‘. Das ist eine alte Maltechnik, die mein Vater damals in seiner Kunstarbeit benutzt hat.“<cite>— Leon Zwezich</cite></blockquote><div class="signature" data-protected-signature><img src="${signatureUrl}" alt="Unterschrift von Leon Zwezich" draggable="false"></div></div></section>
+      <section id="about" class="about section-pad"><div class="about-image"><img src="/studio-hero.webp" alt="Detail aus dem Tattoo-Studio Sfumato in Einbeck" width="1023" height="1537" loading="lazy" decoding="async"></div><div class="about-copy"><p class="section-no">[ 03 — TATTOO SFUMATO ]</p><h2>Handwerk trifft<br><em>Haltung.</em></h2><p>Bei Tattoo Sfumato in Einbeck treffen professionelles Handwerk und eine familiäre Atmosphäre aufeinander. Wir arbeiten konzentriert und mit höchstem Anspruch — dabei bleibt der Umgang persönlich, locker und ganz ohne steife Studio-Vibes. Unser Tattoo-Studio ist auch für Tattoo-Fans aus der Region Northeim, Göttingen, Alfeld und Uslar gut erreichbar.</p><blockquote>„Sfumato bedeutet so viel wie ‚in Rauch aufgehen‘. Das ist eine alte Maltechnik, die mein Vater damals in seiner Kunstarbeit benutzt hat.“<cite>— Leon Zwezich</cite></blockquote><div class="signature" data-protected-signature><img src="${signatureUrl}" alt="Unterschrift von Leon Zwezich" width="1536" height="1024" loading="lazy" decoding="async" draggable="false"></div></div></section>
       <section id="imagefilm" class="film-section section-pad">
         <div class="film-heading"><div><p class="section-no">[ 04 — IMAGEFILM ]</p><h2>Inside<br><em>Sfumato.</em></h2></div><p>Ein Blick hinter die Kulissen — Atmosphäre, Handwerk und die Menschen, die Tattoo Sfumato prägen.</p></div>
         <div class="film-frame reveal">
-          <video src="/Imagevideo.MP4" poster="/Cover.png" preload="metadata" playsinline aria-label="Imagefilm von Tattoo Sfumato"></video>
+          <video src="/Imagevideo.MP4" poster="/Cover.webp" preload="none" playsinline aria-label="Imagefilm aus dem Tattoo-Studio Sfumato in Einbeck"></video>
           <div class="film-shade"></div>
           <div class="film-status"><i></i><span>IMAGEFILM<br><b>SFUMATO / EINBECK</b></span></div>
           <button class="film-play" type="button" aria-label="Imagefilm abspielen"><span></span></button>
@@ -166,7 +166,7 @@ function siteMarkup() {
         <form id="booking-form" class="booking-form"><label>DEIN NAME<input required name="name" placeholder="Vor- und Nachname"></label><div class="form-row"><label>E-MAIL<input required type="email" name="email" placeholder="name@email.de"></label><label>TELEFON <small>OPTIONAL</small><input name="phone" placeholder="+49 ..."></label></div><div class="form-row"><div class="custom-select-field"><span class="form-label">STIL</span><div class="custom-select"><input type="hidden" name="style"><button class="custom-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">Bitte auswählen<span></span></button><div class="custom-select-options" role="listbox" hidden><button type="button" role="option" data-value="Realistic">Realistic</button><button type="button" role="option" data-value="Microrealism">Microrealism</button><button type="button" role="option" data-value="Fineline">Fineline</button><button type="button" role="option" data-value="Andere Richtung">Andere Richtung</button></div></div></div><label>KÖRPERSTELLE<input required name="placement" placeholder="z. B. Unterarm innen"></label></div><div class="form-row"><label>UNGEFÄHRE GRÖSSE <small>IN CM</small><input required name="size" inputmode="decimal" placeholder="z. B. 15 × 10 cm"></label><label class="consultation-toggle"><input type="checkbox" name="consultation" id="consultation" value="yes"><span class="form-check"></span><span class="consultation-label"><b>BERATUNG VORAB</b><small>Bitte erst ein Beratungsgespräch</small></span></label></div><fieldset class="consultation-choice" hidden><legend>WIE DÜRFEN WIR DICH BERATEN?</legend><div class="consultation-options"><label><input type="radio" name="consultationType" value="studio"><span></span><b>Persönlich im Studio</b></label><label><input type="radio" name="consultationType" value="phone"><span></span><b>Telefonisch</b></label></div></fieldset><label>ERZÄHL UNS VON DEINER IDEE<textarea required name="idea" rows="4" placeholder="Motiv, Bedeutung, Wünsche …"></textarea></label><label class="upload" id="reference-dropzone"><input id="reference-input" type="file" name="reference" accept="image/jpeg,image/png,image/webp" multiple><span class="plus">+</span><span><b>Referenzen hinzufügen</b><small>Auswählen oder hierher ziehen · max. 5 Bilder · je 10 MB</small></span></label><div class="upload-previews" aria-live="polite"></div><label class="consent"><input required type="checkbox"><span></span><small>Ich stimme der Verarbeitung meiner Angaben zur Bearbeitung der Anfrage zu.</small></label><button class="button primary submit" type="submit">Anfrage senden ${arrow}</button><p class="form-message" role="status"></p></form>
       </section>
     </main>
-    <footer><div class="footer-brand" data-protected-signature><img src="${signatureUrl}" alt="Signatur von Leon Zwezich" draggable="false"></div><div><a href="#arbeiten">Arbeiten</a><a href="#about">Studio</a><a href="#termin">Booking</a><a href="/admin/">Admin</a></div><div class="social"><a href="https://www.instagram.com/tattoo_sfumato/?hl=de" target="_blank" rel="noopener noreferrer" aria-label="Tattoo Sfumato auf Instagram">${instagram}<span>@tattoo_sfumato</span></a></div><p>© 2026 Tattoo Sfumato · Einbeck · Impressum · Datenschutz</p></footer><div class="toast" role="status"></div>`
+    <footer><div class="footer-brand" data-protected-signature><img src="${signatureUrl}" alt="Signatur von Leon Zwezich" width="1536" height="1024" loading="lazy" decoding="async" draggable="false"></div><div><a href="#arbeiten">Arbeiten</a><a href="#about">Studio</a><a href="#termin">Booking</a><a href="/admin/">Admin</a></div><div class="social"><a href="https://www.instagram.com/tattoo_sfumato/?hl=de" target="_blank" rel="noopener noreferrer" aria-label="Tattoo Sfumato auf Instagram">${instagram}<span>@tattoo_sfumato</span></a></div><p>© 2026 Tattoo Sfumato · Einbeck · Impressum · Datenschutz</p></footer><div class="toast" role="status"></div>`
 }
 
 function allReferencesMarkup(){return `<div class="references-page"><header class="site-header references-header"><a class="brand" href="/" aria-label="Tattoo Sfumato Startseite"><span>TATTOO</span><i>·</i><span>SFUMATO</span></a><nav><a href="/">Startseite</a><a href="/#about">Das Studio</a><a href="/#termin">Anfrage</a></nav><a class="nav-cta" href="/#termin">Termin anfragen ${arrow}</a><button class="menu" aria-label="Menü öffnen" aria-expanded="false"><span></span><span></span></button></header><main><section class="references-hero section-pad"><p class="section-no">[ PORTFOLIO · SFUMATO ]</p><h1>Alle<br><em>Referenzen.</em></h1><p>Realistic, Microrealism und Fineline – ausgewählte Arbeiten aus dem Studio in Einbeck.</p></section><section class="all-references section-pad"><div class="gallery" data-all-references>${publishedPortfolio().map(publicReferenceCard).join('')}</div>${publishedPortfolio().length?'':'<div class="references-empty">Aktuell sind noch keine Arbeiten veröffentlicht.</div>'}</section></main><footer><div class="footer-brand"><img src="${signatureUrl}" alt="Tattoo Sfumato" draggable="false"></div><div><a href="/">Startseite</a><a href="/#termin">Projekt anfragen</a></div><div class="social">Tattoo Sfumato · Einbeck</div><p>© ${new Date().getFullYear()} Tattoo Sfumato</p></footer></div>`}
@@ -413,18 +413,25 @@ function initSite() {
   const filmFrame = document.querySelector('.film-frame')
   const filmTime = document.querySelector('.film-time')
   let filmControlsTimer
-  const showFilmControls = () => {
+  const coarseFilmPointer = matchMedia('(pointer: coarse)').matches
+  const showFilmControls = (persistent = false) => {
     filmFrame?.classList.add('controls-visible')
     clearTimeout(filmControlsTimer)
-    if (!film?.paused) filmControlsTimer = setTimeout(() => filmFrame?.classList.remove('controls-visible'), 1800)
+    if (!persistent && !film?.paused) filmControlsTimer = setTimeout(() => filmFrame?.classList.remove('controls-visible'), 1800)
   }
   const formatTime = seconds => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
   film?.addEventListener('loadedmetadata', () => { filmTime.textContent = formatTime(film.duration) })
   filmButton?.addEventListener('click', () => film.paused ? film.play() : film.pause())
   filmControlButton?.addEventListener('click', () => film.paused ? film.play() : film.pause())
-  filmFrame?.addEventListener('pointermove', showFilmControls)
-  filmFrame?.addEventListener('pointerdown', showFilmControls)
-  filmFrame?.addEventListener('pointerleave', () => { if (!film.paused) filmFrame.classList.remove('controls-visible') })
+  if (!coarseFilmPointer) filmFrame?.addEventListener('pointermove', () => showFilmControls())
+  filmFrame?.addEventListener('pointerdown', event => {
+    if (!coarseFilmPointer) { showFilmControls(); return }
+    if (event.target.closest('button,input')) return
+    clearTimeout(filmControlsTimer)
+    if (filmFrame.classList.contains('is-playing') && filmFrame.classList.contains('controls-visible')) filmFrame.classList.remove('controls-visible')
+    else showFilmControls(true)
+  })
+  filmFrame?.addEventListener('pointerleave', () => { if (!coarseFilmPointer && !film.paused) filmFrame.classList.remove('controls-visible') })
   filmProgress?.addEventListener('input', () => { if (film.duration) film.currentTime = film.duration * (filmProgress.value / 100) })
   film?.addEventListener('timeupdate', () => { if (film.duration) { filmProgress.value = (film.currentTime / film.duration) * 100; filmProgress.style.setProperty('--film-progress', `${filmProgress.value}%`); filmTime.textContent = `${formatTime(film.currentTime)} / ${formatTime(film.duration)}` } })
   filmFullscreen?.addEventListener('click', async () => { if (!document.fullscreenElement) await (filmFrame.requestFullscreen?.() || film.webkitEnterFullscreen?.()); else await document.exitFullscreen?.() })
