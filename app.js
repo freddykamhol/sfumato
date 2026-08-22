@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('.', import.meta.url))
 const port = Number(process.env.PORT) || 3000
-const serverVersion = '2026-08-22.1'
+const serverVersion = '2026-08-22.2'
 const sitePassword = process.env.DEMO_PASSWORD || 'Sfumato2026'
 const cookieName = 'sfumato_site_auth'
 const authToken = createHmac('sha256', sitePassword).update('sfumato-site-access').digest('hex')
@@ -98,12 +98,25 @@ const mimeTypes = {
   '.webp': 'image/webp', '.woff': 'font/woff', '.woff2': 'font/woff2',
 }
 
-await ensureDefaultAdmin()
+// Never prevent Passenger/Plesk from binding the HTTP server because a persisted
+// data file is temporarily unavailable. Authentication waits for this bootstrap
+// separately, while /health remains available for deployment diagnostics.
+const adminBootstrap = ensureDefaultAdmin().catch(error => {
+  console.error('[admin-bootstrap]', error)
+})
 
 createServer(async (request, response) => {
   response.setHeader('X-Sfumato-Server', serverVersion)
   const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname)
   const secureCookie=request.headers['x-forwarded-proto']==='https'?'; Secure':''
+
+  if (pathname === '/health') {
+    response.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' })
+    response.end('ok')
+    return
+  }
+
+  await adminBootstrap
   const adminUser=await adminUserFromRequest(request)
 
   if(pathname==='/admin/login'&&request.method==='GET'){response.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});response.end(adminLoginPage(false));return}
@@ -118,11 +131,6 @@ createServer(async (request, response) => {
     let body='';request.on('data',chunk=>{if(body.length<2000000)body+=chunk});request.on('end',async()=>{try{const input=JSON.parse(body),secret=process.env.INBOUND_EMAIL_SECRET;if(!secret||request.headers['x-inbound-secret']!==secret)return sendJson(response,401,{error:'Webhook nicht autorisiert.'});const haystack=`${input.subject||''} ${input.text||''}`,match=haystack.match(/#([A-Z0-9]{5,8})\b/i);if(!match)return sendJson(response,422,{error:'Keine Anfragenummer gefunden.'});const entries=await readRequests(),entry=entries.find(item=>String(item.reference||item.id).replace(/[^a-z0-9]/gi,'').toLowerCase().endsWith(match[1].toLowerCase()));if(!entry)return sendJson(response,404,{error:'Anfrage nicht gefunden.'});entry.emails=Array.isArray(entry.emails)?entry.emails:[];entry.emails.push({id:`MAIL-${Date.now().toString(36).toUpperCase()}`,direction:'inbound',from:cleanText(input.from,180),subject:cleanText(input.subject,300),text:cleanText(input.text,10000),createdAt:input.date&&Number.isFinite(new Date(input.date).getTime())?new Date(input.date).toISOString():new Date().toISOString()});await saveRequests(entries);sendJson(response,201,{matched:entry.id})}catch{sendJson(response,400,{error:'E-Mail konnte nicht zugeordnet werden.'})}});return
   }
 
-  if (pathname === '/health') {
-    response.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' })
-    response.end('ok')
-    return
-  }
   if(pathname==='/api/calendar.ics'&&request.method==='GET'){const token=new URL(request.url,'http://localhost').searchParams.get('token');Promise.all([readSettings(),readAppointments()]).then(([settings,entries])=>{if(!settings.calendar.webcalToken||token!==settings.calendar.webcalToken)return sendJson(response,401,{error:'Ungültiger Kalender-Link.'});const stamp=value=>new Date(value).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');const escape=value=>String(value||'').replace(/([,;\\])/g,'\\$1').replace(/\n/g,'\\n');const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Tattoo Sfumato//Studio OS//DE','CALSCALE:GREGORIAN',...entries.flatMap(item=>['BEGIN:VEVENT',`UID:${item.id}@sfumato`,`DTSTAMP:${stamp(item.createdAt||Date.now())}`,`DTSTART:${stamp(item.start)}`,`DTEND:${stamp(item.end)}`,`SUMMARY:${escape(item.clientName)} · Tattoo`,`DESCRIPTION:${escape(item.style)} · ${escape(item.placement)}`,'END:VEVENT']),'END:VCALENDAR'].join('\r\n');response.writeHead(200,{'Content-Type':'text/calendar; charset=utf-8','Cache-Control':'no-store'});response.end(ics)}).catch(()=>sendJson(response,500,{error:'Kalender konnte nicht erstellt werden.'}));return}
 
   if (pathname === '/login' && request.method === 'POST') {
@@ -332,4 +340,4 @@ createServer(async (request, response) => {
   })
   if (request.method === 'HEAD') response.end()
   else createReadStream(filePath).pipe(response)
-}).listen(port, '0.0.0.0', () => {console.log(`Sfumato site running on port ${port}`);scanPop3Inbox();setInterval(scanPop3Inbox,120000).unref()})
+}).listen(port, () => {console.log(`Sfumato site running on port ${port}`);scanPop3Inbox();setInterval(scanPop3Inbox,120000).unref()})
