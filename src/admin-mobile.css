@@ -1,0 +1,121 @@
+/* Final mobile layer for the complete studio admin panel. */
+@media (max-width: 800px) {
+  html, body, #app, .admin-shell, .admin-main { width: 100%; max-width: 100%; overflow-x: hidden; }
+  body:has(.admin-shell) { background: #f2f1ed; }
+  .admin-shell { display: block; min-height: 100dvh; padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+  .admin-main { min-width: 0; margin: 0; padding: 0 14px 30px; }
+  .admin-main > header { position: sticky; z-index: 50; top: 0; width: auto; height: 66px; margin: 0 -14px; padding: 0 14px; background: rgba(247,246,242,.94); backdrop-filter: blur(18px); }
+  .admin-main > header h1 { max-width: calc(100vw - 115px); overflow: hidden; font-size: 17px; text-overflow: ellipsis; white-space: nowrap; }
+  #admin-content { min-width: 0; }
+
+  .admin-side { position: fixed; z-index: 100; inset: auto 0 0; display: block; width: 100%; height: calc(70px + env(safe-area-inset-bottom)); padding: 6px 8px env(safe-area-inset-bottom); overflow: hidden; border-top: 1px solid #343530; background: rgba(16,17,15,.97); backdrop-filter: blur(20px); }
+  .admin-side > .brand, .admin-side > p, .admin-side > .back, .admin-side .admin-user { display: none; }
+  .admin-side nav { display: flex; width: 100%; height: 64px; margin: 0; gap: 2px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; scroll-snap-type: x proximity; }
+  .admin-side nav::-webkit-scrollbar { display: none; }
+  .admin-side nav a { flex: 0 0 76px; min-width: 76px; min-height: 58px; padding: 7px 3px 5px; scroll-snap-align: start; font-size: 8px; }
+  .admin-side nav a > b { top: 2px; right: 9px; }
+
+  .admin-title { align-items: stretch; margin: 24px 0 18px; }
+  .admin-title h2, .request-detail h2 { overflow-wrap: anywhere; font-size: clamp(30px, 9vw, 38px); }
+  .admin-title > a, .admin-title > button, .admin-title .dashboard-actions { width: 100%; margin-top: 14px; }
+  .admin-title > a { display: flex; justify-content: center; }
+  button, a, input, select, textarea { touch-action: manipulation; }
+  button, .save-settings, .secondary-action { min-height: 42px; }
+  input, select, textarea { max-width: 100%; font-size: 16px !important; }
+
+  .detail-top { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .detail-top > div { display: grid; grid-template-columns: 1fr; gap: 7px; }
+  .detail-top button { width: 100%; min-height: 44px; font-size: 9px; }
+  .request-hero, .appointment-head { min-width: 0; }
+  .request-hero h2, .appointment-head h2 { overflow-wrap: anywhere; }
+  .request-hero p, .appointment-customer-card em { overflow-wrap: anywhere; line-height: 1.55; }
+  .request-detail-grid, .request-workspace, .settings-layout, .appointment-layout { display: grid; grid-template-columns: minmax(0,1fr); }
+  .project-card, .timeline-card, .appointment-media, .customer-notes { min-width: 0; }
+  .project-card dl { grid-template-columns: 1fr; }
+  .request-duration label { grid-template-columns: minmax(0,1fr) 80px auto; }
+  .request-references { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .request-references img { width: 100%; }
+  .request-timeline form, .customer-notes form { min-width: 0; }
+  .stored-proposals, .linked-appointment { padding: 15px; }
+  .stored-proposals article button { gap: 12px; }
+  .stored-proposals article button i { flex: 0 0 auto; }
+
+  .request-filters, .portfolio-toolbar, .interface-fields, .buffer-settings, .appointment-form-grid, .appointment-media form, .proposal-edit-list, .smtp-grid { grid-template-columns: minmax(0,1fr); }
+  .request-filters { gap: 10px; }
+  .request-inbox .request-row { min-width: 0; }
+  .request-inbox .request-row > span { min-width: 0; }
+  .request-inbox .request-row b, .request-inbox .request-row small { overflow-wrap: anywhere; }
+
+  .customer-filter > div { min-width: 0; }
+  .customer-row { grid-template-columns: minmax(0,1fr) 84px; min-width: 0; }
+  .customer-row-main { grid-template-columns: 40px minmax(0,1fr) 44px; min-width: 0; padding: 13px 10px; }
+  .customer-row-main > div:nth-of-type(2), .customer-row-appointments { display: none; }
+  .customer-row-main small { overflow-wrap: anywhere; }
+  .customer-row-actions { width: 84px; }
+  .customer-quick-action { min-height: 72px; }
+  .customer-contact-grid, .customer-history, .customer-note-list { grid-template-columns: minmax(0,1fr); }
+  .customer-hero { min-width: 0; padding: 18px 15px; }
+  .customer-hero h2, .customer-contact-card b { overflow-wrap: anywhere; }
+
+  .appointment-files-list > button { grid-template-columns: 52px minmax(0,1fr) 22px; min-width: 0; }
+  .appointment-files-list > button > span { min-width: 0; }
+  .appointment-files-list > button > span b, .appointment-files-list > button > span small { overflow-wrap: anywhere; }
+  .appointment-customer-card { grid-template-columns: 40px minmax(0,1fr); min-width: 0; padding: 14px; }
+  .appointment-media form { padding: 14px; }
+  .appointment-notes .customer-note-list { grid-template-columns: minmax(0,1fr); }
+
+  .settings-subnav { width: calc(100vw - 28px); margin-bottom: 24px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory; }
+  .settings-subnav::-webkit-scrollbar { display: none; }
+  .settings-subnav a { flex: 0 0 132px; min-width: 132px; scroll-snap-align: start; }
+  .interface-config, .webcal-card, .buffer-settings, .rules-card { min-width: 0; padding: 17px 14px; }
+  .interface-config header { grid-template-columns: 40px minmax(0,1fr) auto; }
+  .interface-config header p { line-height: 1.5; }
+  .webcal-card { grid-template-columns: minmax(0,1fr); }
+  .webcal-card input { width: 100%; }
+  .buffer-settings label { grid-template-columns: minmax(0,1fr) 84px auto; }
+  .hours-card { padding: 16px 12px; }
+  .hours-row { grid-template-columns: 32px minmax(82px,1fr) minmax(76px,92px); gap: 6px; }
+  .hours-row input[type=time] { width: 100%; min-width: 0; }
+  .calendar-rule { min-width: 0; }
+  .rule-sentence { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; }
+  .rule-sentence strong { width: auto; }
+  .rule-sentence select, .rule-sentence select[name="rule-type"], .rule-sentence input { width: 100%; min-width: 0; }
+  .rule-label { align-items: stretch; flex-direction: column; }
+  .admin-users article { grid-template-columns: 40px minmax(0,1fr) auto; gap: 10px; padding: 14px; }
+  .admin-users article span { min-width: 0; }
+  .admin-users article span small { overflow-wrap: anywhere; }
+
+  .calendar-card { width: 100%; padding: 12px 8px; overflow: hidden; }
+  .calendar-grid { width: 100%; min-width: 0; table-layout: fixed; }
+  .calendar-grid > b { min-width: 0; overflow: hidden; padding: 7px 1px; font-size: 6px; text-align: center; }
+  .cal-day { min-width: 0; min-height: 49px; padding: 5px 2px; }
+  .cal-day small { width: 6px; height: 6px; overflow: hidden; border-radius: 50%; font-size: 0; }
+  .today-file-list { grid-template-columns: minmax(0,1fr); }
+
+  .admin-modal.open { position: fixed; inset: 0; }
+  .admin-modal .modal-sheet { inset: auto 0 0 !important; width: 100% !important; max-width: none !important; max-height: 94dvh; min-height: 0; padding: 48px 16px calc(20px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0 !important; overflow-x: hidden; }
+  .modal-sheet h2 { padding-right: 30px; font-size: 29px; }
+  .modal-close { position: absolute; z-index: 2; top: 12px; right: 12px; width: 40px; height: 40px; }
+  .modal-actions { bottom: calc(-20px - env(safe-area-inset-bottom)); flex-direction: column-reverse; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+  .modal-actions button { width: 100%; }
+  .call-modal, .email-modal { min-width: 0; }
+  .call-modal-layout { grid-template-columns: minmax(0,1fr); }
+  .call-number { white-space: nowrap; font-size: clamp(20px,7vw,34px) !important; }
+  .lightbox-stage { grid-template-columns: 42px minmax(0,1fr) 42px; }
+}
+
+@media (max-width: 420px) {
+  .admin-main { padding-inline: 11px; }
+  .admin-main > header { margin-inline: -11px; padding-inline: 11px; }
+  .dashboard-stats { grid-template-columns: minmax(0,1fr); }
+  .dashboard-stats article + article, .dashboard-stats article:nth-child(3) { border-left: 0; border-top: 1px solid #e3e0da; }
+  .dashboard-stats article { min-height: 92px; }
+  .request-references, .assigned-assets, .appointment-facts { grid-template-columns: minmax(0,1fr); }
+  .request-duration label, .buffer-settings label { grid-template-columns: minmax(0,1fr) 72px; }
+  .request-duration label span, .buffer-settings label span { grid-column: 2; }
+  .customer-row { grid-template-columns: minmax(0,1fr) 76px; }
+  .customer-row-actions { width: 76px; }
+  .customer-row-main { grid-template-columns: 38px minmax(0,1fr); }
+  .customer-row-notes { display: none; }
+  .settings-subnav { width: calc(100vw - 22px); }
+}

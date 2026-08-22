@@ -9,6 +9,7 @@ import QRCode from 'qrcode'
 import './customer-contact.css'
 import './modal-center.css'
 import './lightbox.css'
+import './admin-mobile.css'
 import signatureUrl from './assets/Signatur2.png?inline'
 
 const portfolio = [
