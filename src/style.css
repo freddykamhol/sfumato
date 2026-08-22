@@ -73,4 +73,5 @@ img,svg{max-width:100%}
 
 /* Keep the consent control consistent with the consultation checkbox. */
 .booking-form .consent{gap:13px}.booking-form .consent>span{width:20px;height:20px;border-color:#817b72;transition:.2s}.booking-form .consent>small{font-size:9px;line-height:1.45;color:#666!important}.booking-form .consent input:checked+span{background:var(--red);border-color:var(--red);box-shadow:none}.booking-form .consent>span:after{left:5px;top:5px;color:#fff}
+.footer-brand img{display:block;width:200px;height:auto;max-height:125px;object-fit:contain;object-position:left center}
 .film-frame>video{width:100%;height:100%;object-fit:cover;object-position:50% 53%;filter:grayscale(1) contrast(1.12) brightness(.62);transform:scale(1.02);transition:filter .8s,transform 1.4s cubic-bezier(.16,1,.3,1)}.film-frame:hover>video{filter:grayscale(.45) contrast(1.08) brightness(.7);transform:scale(1.055)}.film-play.playing span{width:13px;height:18px;border:0;border-left:4px solid #fff;border-right:4px solid #fff;transform:none}.film-play.playing{opacity:.35}.film-frame:hover .film-play.playing{opacity:1}
