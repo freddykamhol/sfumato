@@ -779,62 +779,7 @@ function initAdmin() {
   content.addEventListener('dragleave',e=>e.target.closest('.appointment-upload-drop')?.classList.remove('is-dragging'))
   content.addEventListener('drop',e=>{const drop=e.target.closest('.appointment-upload-drop');if(!drop)return;e.preventDefault();drop.classList.remove('is-dragging');const input=drop.querySelector('input[type="file"]');if(input&&e.dataTransfer.files.length){input.files=e.dataTransfer.files;drop.firstChild.textContent=` ${e.dataTransfer.files.length} Bild${e.dataTransfer.files.length===1?'':'er'} ausgewählt `}})
 }
-const ACCESS_PASSWORD = 'Sfumato2026'
-const ACCESS_KEY = 'sfumato-access-granted'
-
-function passwordMarkup() {
-  return `<main class="password-gate">
-    <section class="password-panel" aria-labelledby="password-title">
-      <a class="password-brand" href="#" aria-label="Tattoo Sfumato">TATTOO <i>·</i> SFUMATO</a>
-      <div class="password-copy">
-        <p class="password-kicker">GESCHÜTZTER BEREICH</p>
-        <h1 id="password-title">Willkommen bei<br><em>Sfumato.</em></h1>
-        <p>Diese Seite ist derzeit nur mit Passwort zugänglich.</p>
-      </div>
-      <form id="password-form" class="password-form">
-        <label for="site-password">PASSWORT</label>
-        <div class="password-field">
-          <input id="site-password" name="password" type="password" autocomplete="current-password" autofocus required>
-          <button type="button" class="password-toggle" aria-label="Passwort anzeigen" aria-pressed="false">ANZEIGEN</button>
-        </div>
-        <p class="password-error" role="alert" aria-live="polite"></p>
-        <button class="password-submit" type="submit">Seite betreten <span>→</span></button>
-      </form>
-      <p class="password-footer">TATTOO SFUMATO · EINBECK</p>
-    </section>
-  </main>`
-}
-
 function adminLoginFallbackMarkup(){return `<main class="password-gate"><section class="password-panel" aria-labelledby="admin-login-title"><a class="password-brand" href="/">TATTOO <i>·</i> SFUMATO</a><div class="password-copy"><p class="password-kicker">STUDIO OS</p><h1 id="admin-login-title">Admin<br><em>Login.</em></h1><p>Melde dich mit deinem persönlichen Studio-Konto an.</p></div><form class="password-form" method="post" action="/admin/login"><label for="admin-username">BENUTZERNAME ODER E-MAIL</label><div class="password-field"><input id="admin-username" name="username" autocomplete="username" required autofocus></div><label for="admin-password" class="admin-password-label">PASSWORT</label><div class="password-field"><input id="admin-password" name="password" type="password" autocomplete="current-password" required></div><button class="password-submit" type="submit">Anmelden <span>→</span></button></form><p class="password-footer">TATTOO SFUMATO · STUDIO OS</p></section></main>`}
-
-function initPasswordGate() {
-  const form = document.querySelector('#password-form')
-  const input = document.querySelector('#site-password')
-  const toggle = document.querySelector('.password-toggle')
-  const error = document.querySelector('.password-error')
-
-  toggle.addEventListener('click', () => {
-    const show = input.type === 'password'
-    input.type = show ? 'text' : 'password'
-    toggle.textContent = show ? 'AUSBLENDEN' : 'ANZEIGEN'
-    toggle.setAttribute('aria-pressed', String(show))
-    toggle.setAttribute('aria-label', show ? 'Passwort ausblenden' : 'Passwort anzeigen')
-    input.focus()
-  })
-
-  form.addEventListener('submit', event => {
-    event.preventDefault()
-    if (input.value !== ACCESS_PASSWORD) {
-      error.textContent = 'Das Passwort ist nicht korrekt.'
-      input.value = ''
-      input.setAttribute('aria-invalid', 'true')
-      input.focus()
-      return
-    }
-    sessionStorage.setItem(ACCESS_KEY, 'true')
-    render()
-  })
-}
 
 function initLightbox(){
   if(document.querySelector('.system-lightbox'))return
@@ -858,12 +803,6 @@ async function render(){
     document.querySelector('#app').innerHTML='<main class="admin-auth-check"><span>TATTOO · SFUMATO</span><i></i><p>Admin-Session wird geprüft …</p></main>'
     try{const response=await fetch('/api/auth/me',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-store'}),type=response.headers.get('content-type')||'',user=type.includes('application/json')?await response.json():null;if(!response.ok||!user?.id){location.replace('/admin/login');return}}
     catch{location.replace('/admin/login');return}
-  }
-  const serverAccess = document.cookie.split(';').some(cookie => cookie.trim() === 'sfumato_site_client=1')
-  if (!admin && !serverAccess && sessionStorage.getItem(ACCESS_KEY) !== 'true') {
-    document.querySelector('#app').innerHTML = passwordMarkup()
-    initPasswordGate()
-    return
   }
   document.querySelector('#app').innerHTML=admin?adminMarkup():referencesPage?allReferencesMarkup():siteMarkup(); admin?initAdmin():initSite();initLightbox();window.scrollTo(0,0)
 }

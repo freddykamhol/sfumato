@@ -9,9 +9,7 @@ import { fileURLToPath } from 'node:url'
 const root = fileURLToPath(new URL('.', import.meta.url))
 const port = Number(process.env.PORT) || 3000
 const serverVersion = '2026-08-22.2'
-const sitePassword = process.env.DEMO_PASSWORD || 'Sfumato2026'
-const cookieName = 'sfumato_site_auth'
-const authToken = createHmac('sha256', sitePassword).update('sfumato-site-access').digest('hex')
+const applicationSecret = process.env.ADMIN_SESSION_SECRET || process.env.DEMO_PASSWORD || 'Sfumato2026'
 const dataDirectory = join(root, 'data')
 const requestsFile = join(dataDirectory, 'requests.json')
 const appointmentsFile = join(dataDirectory, 'appointments.json')
@@ -20,7 +18,7 @@ const portfolioFile = join(dataDirectory, 'portfolio.json')
 const settingsFile = join(dataDirectory, 'settings.json')
 const usersFile = join(dataDirectory, 'users.json')
 const adminCookieName = 'sfumato_admin_auth'
-const adminSecret = process.env.ADMIN_SESSION_SECRET || createHmac('sha256', sitePassword).update('sfumato-admin-session').digest('hex')
+const adminSecret = createHmac('sha256', applicationSecret).update('sfumato-admin-session').digest('hex')
 const uploadsDirectory = join(dataDirectory, 'uploads')
 
 const readRequests = async () => {
@@ -69,27 +67,7 @@ const pop3Command=(socket,command,multiline=false)=>new Promise((resolve,reject)
 let pop3Scanning=false
 const scanPop3Inbox=async()=>{if(pop3Scanning)return;pop3Scanning=true;let socket;try{const settings=await readSettings(),config=settings.integrations?.pop3;if(!config?.enabled||!config.host||!config.user||!config.password)return;socket=connectTls({host:config.host,port:Number(config.port)||995,servername:config.host,rejectUnauthorized:true});await new Promise((resolve,reject)=>{socket.once('secureConnect',resolve);socket.once('error',reject)});await pop3Command(socket,`USER ${config.user}`);await pop3Command(socket,`PASS ${config.password}`);const uidResponse=await pop3Command(socket,'UIDL',true),lines=uidResponse.split('\r\n').slice(1,-2),processed=new Set(config.processedUids||[]),requests=await readRequests();for(const line of lines.slice(-100)){const[number,uid]=line.split(/\s+/);if(!number||!uid||processed.has(uid))continue;const raw=await pop3Command(socket,`RETR ${number}`,true),reference=raw.match(/#([A-Z0-9]{5,8})\b/i),entry=reference&&requests.find(item=>String(item.reference||item.id).replace(/[^a-z0-9]/gi,'').toLowerCase().endsWith(reference[1].toLowerCase()));if(entry){const subject=raw.match(/^Subject:\s*(.+)$/im)?.[1]?.trim()||'E-Mail-Antwort',from=raw.match(/^From:\s*(.+)$/im)?.[1]?.trim()||config.user;entry.emails=Array.isArray(entry.emails)?entry.emails:[];entry.emails.push({id:`MAIL-${Date.now().toString(36).toUpperCase()}`,direction:'inbound',from:cleanText(from,180),subject:cleanText(subject,300),text:cleanText(raw.split('\r\n\r\n').slice(1).join('\n'),10000),createdAt:new Date().toISOString()})}processed.add(uid)}await saveRequests(requests);settings.integrations.pop3.processedUids=[...processed].slice(-5000);settings.integrations.pop3.lastScanAt=new Date().toISOString();await saveSettings(settings);await pop3Command(socket,'QUIT')}catch(error){console.error('[pop3]',error.message)}finally{socket?.destroy();pop3Scanning=false}}
 
-const loginPage = error => `<!doctype html>
-<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0d0e0c"><title>Geschützter Bereich | Tattoo Sfumato</title>
-<style>*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:28px;background:radial-gradient(circle at 78% 22%,#7e292248,transparent 35%),#0d0e0c;color:#f3efe7;font-family:Arial,sans-serif}.card{width:min(100%,520px);min-height:min(680px,calc(100dvh - 56px));padding:42px 46px;border:1px solid #33342f;background:#0f100ed9;display:flex;flex-direction:column;box-shadow:0 35px 90px #0006}.brand{font-size:12px;font-weight:700;letter-spacing:.24em}.brand i{color:#a93d34;font-style:normal}.copy{margin:auto 0 42px}.eyebrow{color:#aaa69c;font-size:8px;font-weight:700;letter-spacing:.22em}h1{margin:24px 0 18px;font-family:Georgia,serif;font-size:58px;font-weight:400;line-height:.98;letter-spacing:-.04em}h1 em{color:#a93d34;font-weight:400}p{margin:0;color:#aaa79f;font-size:13px;line-height:1.7}label{display:block;margin-bottom:8px;color:#aaa69c;font-size:8px;font-weight:700;letter-spacing:.18em}.input{border-bottom:1px solid #5a5a54}.input:focus-within{border-color:#b64a40}input{width:100%;height:52px;padding:0;border:0;outline:0;background:transparent;color:#fff;font-size:17px;letter-spacing:.06em}button{width:100%;height:54px;margin-top:14px;border:0;background:#f0ece4;color:#11120f;font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;cursor:pointer}button:hover{background:#b6463d;color:#fff}.error{margin:10px 0 0;color:#df7168;font-size:11px}.footer{margin-top:30px;color:#666860;font-size:7px;font-weight:700;letter-spacing:.2em}@media(max-width:600px){body{padding:0}.card{min-height:100dvh;padding:30px 24px;border:0}h1{font-size:48px}}</style></head>
-<body><main class="card"><div class="brand">TATTOO <i>·</i> SFUMATO</div><div class="copy"><div class="eyebrow">GESCHÜTZTER BEREICH</div><h1>Willkommen bei<br><em>Sfumato.</em></h1><p>Diese Seite ist derzeit nur mit Passwort zugänglich.</p></div><form method="post" action="/login"><label for="password">PASSWORT</label><div class="input"><input id="password" name="password" type="password" autocomplete="current-password" autofocus required></div>${error ? '<div class="error" role="alert">Das Passwort ist nicht korrekt.</div>' : ''}<button type="submit">Seite betreten →</button></form><div class="footer">TATTOO SFUMATO · EINBECK</div></main></body></html>`
-
 const adminLoginPage=error=>`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Studio OS · Anmeldung</title><style>*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 75% 20%,#782a2440,transparent 35%),#0d0e0c;color:#f3efe7;font-family:Arial,sans-serif}.login{width:min(440px,100%);padding:42px;border:1px solid #34342f;border-radius:12px;background:#121310;box-shadow:0 35px 100px #0008}.brand{font-size:11px;font-weight:700;letter-spacing:.2em}.brand i{color:#a93d34;font-style:normal}.kicker{margin-top:70px;color:#88887f;font-size:8px;letter-spacing:.22em}h1{margin:12px 0 8px;font:400 42px Georgia,serif}p{margin:0 0 32px;color:#8f8e87;font-size:12px;line-height:1.6}label{display:block;margin:18px 0 7px;color:#aaa9a1;font-size:8px;font-weight:700;letter-spacing:.16em}input{width:100%;height:48px;padding:0 13px;border:1px solid #3b3c36;border-radius:6px;outline:0;background:#191a17;color:#fff;font-size:16px}input:focus{border-color:#a93d34}.error{margin-top:12px;color:#e47b72;font-size:11px}button{width:100%;height:50px;margin-top:24px;border:0;border-radius:6px;background:#f0ece4;color:#11120f;font-size:9px;font-weight:700;letter-spacing:.13em;text-transform:uppercase}@media(max-width:520px){body{padding:0}.login{min-height:100dvh;padding:30px 22px;border:0;border-radius:0}}</style></head><body><main class="login"><div class="brand">TATTOO <i>·</i> SFUMATO</div><div class="kicker">STUDIO OS</div><h1>Admin Login</h1><p>Melde dich mit deinem persönlichen Studio-Konto an.</p><form method="post" action="/admin/login"><label for="username">BENUTZERNAME ODER E-MAIL</label><input id="username" name="username" autocomplete="username" required autofocus><label for="password">PASSWORT</label><input id="password" name="password" type="password" autocomplete="current-password" required>${error?'<div class="error">Benutzername oder Passwort ist nicht korrekt.</div>':''}<button type="submit">Anmelden →</button></form></main></body></html>`
-
-const hasValidCookie = request => {
-  const cookie = request.headers.cookie?.split(';').map(value => value.trim()).find(value => value.startsWith(`${cookieName}=`))
-  const supplied = cookie?.slice(cookieName.length + 1) || ''
-  const expectedBuffer = Buffer.from(authToken)
-  const suppliedBuffer = Buffer.from(supplied)
-  return suppliedBuffer.length === expectedBuffer.length && timingSafeEqual(suppliedBuffer, expectedBuffer)
-}
-
-const passwordsMatch = supplied => {
-  const expectedBuffer = Buffer.from(sitePassword)
-  const suppliedBuffer = Buffer.from(supplied)
-  return suppliedBuffer.length === expectedBuffer.length && timingSafeEqual(suppliedBuffer, expectedBuffer)
-}
 
 const mimeTypes = {
   '.css': 'text/css; charset=utf-8', '.html': 'text/html; charset=utf-8', '.ico': 'image/x-icon',
@@ -133,36 +111,6 @@ createServer(async (request, response) => {
 
   if(pathname==='/api/calendar.ics'&&request.method==='GET'){const token=new URL(request.url,'http://localhost').searchParams.get('token');Promise.all([readSettings(),readAppointments()]).then(([settings,entries])=>{if(!settings.calendar.webcalToken||token!==settings.calendar.webcalToken)return sendJson(response,401,{error:'Ungültiger Kalender-Link.'});const stamp=value=>new Date(value).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');const escape=value=>String(value||'').replace(/([,;\\])/g,'\\$1').replace(/\n/g,'\\n');const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Tattoo Sfumato//Studio OS//DE','CALSCALE:GREGORIAN',...entries.flatMap(item=>['BEGIN:VEVENT',`UID:${item.id}@sfumato`,`DTSTAMP:${stamp(item.createdAt||Date.now())}`,`DTSTART:${stamp(item.start)}`,`DTEND:${stamp(item.end)}`,`SUMMARY:${escape(item.clientName)} · Tattoo`,`DESCRIPTION:${escape(item.style)} · ${escape(item.placement)}`,'END:VEVENT']),'END:VCALENDAR'].join('\r\n');response.writeHead(200,{'Content-Type':'text/calendar; charset=utf-8','Cache-Control':'no-store'});response.end(ics)}).catch(()=>sendJson(response,500,{error:'Kalender konnte nicht erstellt werden.'}));return}
 
-  if (pathname === '/login' && request.method === 'POST') {
-    let body = ''
-    request.on('data', chunk => { if (body.length < 4096) body += chunk })
-    request.on('end', () => {
-      const password = new URLSearchParams(body).get('password') || ''
-      if (passwordsMatch(password)) {
-        const secure = request.headers['x-forwarded-proto'] === 'https' ? '; Secure' : ''
-        response.writeHead(303, {
-          Location: '/',
-          'Set-Cookie': [
-            `${cookieName}=${authToken}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400${secure}`,
-            `sfumato_site_client=1; SameSite=Strict; Path=/; Max-Age=86400${secure}`,
-          ],
-          'Cache-Control': 'no-store',
-        })
-        response.end()
-      } else {
-        response.writeHead(401, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' })
-        response.end(loginPage(true))
-      }
-    })
-    return
-  }
-
-  if (!hasValidCookie(request) && !adminUser) {
-    response.writeHead(401, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' })
-    response.end(loginPage(false))
-    return
-  }
-
   if (pathname === '/api/requests' && request.method === 'GET') {
     readRequests().then(requests => sendJson(response, 200, requests)).catch(() => sendJson(response, 500, { error: 'Anfragen konnten nicht geladen werden.' }))
     return
@@ -170,8 +118,8 @@ createServer(async (request, response) => {
 
   if(pathname==='/api/auth/me'&&request.method==='GET'){const{password,...safe}=adminUser;sendJson(response,200,safe);return}
   if(pathname==='/api/portfolio'&&request.method==='GET'){readPortfolio().then(entries=>sendJson(response,200,entries)).catch(()=>sendJson(response,500,{error:'Referenzen konnten nicht geladen werden.'}));return}
-  if(pathname==='/api/settings'&&request.method==='GET'){readSettings().then(async settings=>{if(!settings.calendar.webcalToken){settings.calendar.webcalToken=createHmac('sha256',sitePassword).update(String(Date.now())).digest('hex').slice(0,24);await saveSettings(settings)}sendJson(response,200,settings)}).catch(()=>sendJson(response,500,{error:'Einstellungen konnten nicht geladen werden.'}));return}
-  if(pathname==='/api/settings'&&request.method==='PUT'){let body='';request.on('data',chunk=>{if(body.length<2000000)body+=chunk});request.on('end',async()=>{try{const input=JSON.parse(body),settings=await readSettings(),next={...settings,...input,integrations:{...settings.integrations,...input.integrations},calendar:{...settings.calendar,...input.calendar}};if(!next.calendar.webcalToken)next.calendar.webcalToken=createHmac('sha256',sitePassword).update(String(Date.now())).digest('hex').slice(0,24);await saveSettings(next);sendJson(response,200,next)}catch{sendJson(response,400,{error:'Einstellungen konnten nicht gespeichert werden.'})}});return}
+  if(pathname==='/api/settings'&&request.method==='GET'){readSettings().then(async settings=>{if(!settings.calendar.webcalToken){settings.calendar.webcalToken=createHmac('sha256',applicationSecret).update(String(Date.now())).digest('hex').slice(0,24);await saveSettings(settings)}sendJson(response,200,settings)}).catch(()=>sendJson(response,500,{error:'Einstellungen konnten nicht geladen werden.'}));return}
+  if(pathname==='/api/settings'&&request.method==='PUT'){let body='';request.on('data',chunk=>{if(body.length<2000000)body+=chunk});request.on('end',async()=>{try{const input=JSON.parse(body),settings=await readSettings(),next={...settings,...input,integrations:{...settings.integrations,...input.integrations},calendar:{...settings.calendar,...input.calendar}};if(!next.calendar.webcalToken)next.calendar.webcalToken=createHmac('sha256',applicationSecret).update(String(Date.now())).digest('hex').slice(0,24);await saveSettings(next);sendJson(response,200,next)}catch{sendJson(response,400,{error:'Einstellungen konnten nicht gespeichert werden.'})}});return}
   if(pathname==='/api/users'&&request.method==='GET'){readUsers().then(users=>sendJson(response,200,users.map(({password,...user})=>user))).catch(()=>sendJson(response,500,{error:'Benutzer konnten nicht geladen werden.'}));return}
   if(pathname==='/api/users'&&request.method==='POST'){let body='';request.on('data',chunk=>{if(body.length<100000)body+=chunk});request.on('end',async()=>{try{const input=JSON.parse(body),users=await readUsers(),username=cleanText(input.username,80).toLowerCase(),email=cleanText(input.email,180).toLowerCase();if(!username||!email||!input.password||String(input.password).length<8)return sendJson(response,400,{error:'Benutzername, E-Mail und mindestens 8 Zeichen Passwort werden benötigt.'});if(users.some(user=>user.username?.toLowerCase()===username||user.email?.toLowerCase()===email))return sendJson(response,409,{error:'Benutzername oder E-Mail ist bereits vergeben.'});const entry={id:`USR-${Date.now().toString(36).toUpperCase()}`,username,name:cleanText(input.name,120)||username,email,role:['Administrator','Studio','Lesen'].includes(input.role)?input.role:'Studio',active:input.active!==false,password:hashPassword(input.password),createdAt:new Date().toISOString()};users.push(entry);await saveUsers(users);const{password,...safe}=entry;sendJson(response,201,safe)}catch{sendJson(response,400,{error:'Benutzer konnte nicht angelegt werden.'})}});return}
   const userMatch=pathname.match(/^\/api\/users\/([^/]+)$/);if(userMatch&&request.method==='PATCH'){let body='';request.on('data',chunk=>body+=chunk);request.on('end',async()=>{try{const input=JSON.parse(body),users=await readUsers(),entry=users.find(item=>item.id===decodeURIComponent(userMatch[1]));if(!entry)return sendJson(response,404,{error:'Benutzer nicht gefunden.'});for(const field of ['name','email','username','role'])if(input[field]!==undefined)entry[field]=cleanText(input[field],180);if(input.active!==undefined)entry.active=Boolean(input.active);if(input.password){if(String(input.password).length<8)return sendJson(response,400,{error:'Das Passwort benötigt mindestens 8 Zeichen.'});entry.password=hashPassword(input.password)}entry.initial=false;await saveUsers(users);const{password,...safe}=entry;sendJson(response,200,safe)}catch{sendJson(response,400,{error:'Benutzer konnte nicht aktualisiert werden.'})}});return}if(userMatch&&request.method==='DELETE'){readUsers().then(async users=>{const id=decodeURIComponent(userMatch[1]),removed=users.find(item=>item.id===id);await saveUsers(users.filter(item=>item.id!==id));if(removed?.initial||removed?.id==='USR-ADMIN'){const settings=await readSettings();settings.auth={...(settings.auth||{}),defaultAdminRemoved:true};await saveSettings(settings)}sendJson(response,200,{deleted:true})});return}
