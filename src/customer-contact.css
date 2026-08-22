@@ -236,9 +236,21 @@
 .call-primary strong {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.08em 0.22em;
+  width: 100%;
+  max-width: 100%;
   margin: 10px 0 24px;
   color: #fff;
-  font-size: clamp(27px, 3.2vw, 39px);
+  font-size: clamp(25px, 2.55vw, 34px);
+  line-height: 1.12;
+  white-space: normal;
+}
+
+.call-primary strong span {
+  display: inline-block;
+  white-space: nowrap;
 }
 
 .call-primary > a {
