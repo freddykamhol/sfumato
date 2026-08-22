@@ -1,4 +1,5 @@
 import './style.css'
+import './admin-sticky.css'
 import signatureUrl from './assets/Signatur2.png?inline'
 
 const portfolio = [

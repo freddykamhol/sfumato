@@ -1,0 +1,19 @@
+.admin-main {
+  padding-top: 0;
+}
+
+.admin-main > header {
+  position: sticky;
+  top: 0;
+  z-index: 45;
+  padding-top: 30px;
+  background: rgba(242, 241, 237, 0.96);
+  backdrop-filter: blur(14px);
+}
+
+@media (max-width: 800px) {
+  .admin-main > header {
+    height: 74px;
+    padding: 0 16px;
+  }
+}
