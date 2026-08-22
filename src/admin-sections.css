@@ -96,6 +96,27 @@
   font-size: 11px;
 }
 
+.appointment-customer-card { display: grid; grid-template-columns: 48px minmax(0,1fr) auto; gap: 16px; align-items: center; width: 100%; margin: 18px 0; padding: 16px 20px; border: 1px solid #dedbd4; border-radius: 8px; background: #fff; text-align: left; cursor: pointer; transition: border-color .2s, transform .2s, box-shadow .2s; }
+.appointment-customer-card:hover { border-color: #b9b4ab; box-shadow: 0 8px 24px rgba(30,28,24,.06); transform: translateY(-1px); }
+.appointment-customer-card > span:nth-child(2) small,.appointment-customer-card > span:nth-child(2) b,.appointment-customer-card > span:nth-child(2) em { display: block; }
+.appointment-customer-card small { color: #8b867e; font-size: 9px; letter-spacing: .15em; }
+.appointment-customer-card b { margin: 4px 0; font-size: 15px; }
+.appointment-customer-card em,.appointment-customer-card > i { color: #817d75; font-size: 10px; font-style: normal; }
+.appointment-media { padding: 24px; border: 1px solid #dedbd4; border-radius: 8px; background: #fff; }
+.appointment-media > div:first-child { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.appointment-media .request-references { margin-bottom: 18px; }
+.appointment-media form { display: grid; grid-template-columns: 160px minmax(0,1fr) auto; gap: 12px; align-items: end; }
+.appointment-media form label { color: #817d75; font-size: 9px; letter-spacing: .13em; }
+.appointment-media select { display: block; width: 100%; margin-top: 7px; padding: 12px; border: 1px solid #d8d4cc; border-radius: 5px; background: #faf9f6; }
+.appointment-upload-drop { display: grid; min-height: 42px; place-items: center; padding: 10px; border: 1px dashed #aaa59c; border-radius: 5px; background: #faf9f6; color: #615d56 !important; cursor: pointer; letter-spacing: 0 !important; }
+.appointment-upload-drop.is-dragging { border-color: var(--red); background: #fff2ef; color: var(--red) !important; }
+.appointment-upload-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.appointment-media form .modal-form-error { grid-column: 1/-1; }
+.appointment-notes { margin-top: 18px; }
+.contact-message-button { width: 100%; margin-top: 10px; padding: 14px; border: 1px solid rgba(255,255,255,.28); border-radius: 4px; background: transparent; color: #fff; cursor: pointer; }
+.proposal-edit-list { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin: 18px 0; }
+.proposal-edit-list input { display: block; width: 100%; margin-top: 7px; }
+
 .customer-list > button {
   display: grid;
   grid-template-columns: 44px 1fr 90px 90px;
@@ -343,6 +364,9 @@
 
   .customer-filter > div { padding-inline: 13px; }
   .customer-filter [data-customer-filter-count] { display: none; }
+  .appointment-media form,.proposal-edit-list { grid-template-columns: 1fr; }
+  .appointment-customer-card { grid-template-columns: 42px minmax(0,1fr); }
+  .appointment-customer-card > i { display: none; }
 
   .customer-history {
     grid-template-columns: 1fr;

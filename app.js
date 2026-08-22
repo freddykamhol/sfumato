@@ -133,7 +133,7 @@ createServer((request, response) => {
     request.on('end', async () => {
       try {
         const input = JSON.parse(body)
-        const allowedCategories = ['Allgemein','Motiv & Stil','Gesundheit','Vorbereitung','Nachsorge','Zahlung']
+        const allowedCategories = ['Allgemein','Motiv & Stil','Gesundheit','Vorbereitung','Durchführung','Nachsorge','Zahlung']
         const allowedRelevance = ['normal','wichtig','kritisch']
         const entry = { id: `NOTE-${Date.now().toString(36).toUpperCase()}`, customerKey: cleanText(input.customerKey, 220).toLowerCase(), category: allowedCategories.includes(input.category) ? input.category : 'Allgemein', relevance: allowedRelevance.includes(input.relevance) ? input.relevance : 'normal', text: cleanText(input.text, 4000), createdAt: new Date().toISOString() }
         if (!entry.customerKey || !entry.text) return sendJson(response, 400, { error: 'Kunde und Notiztext werden benötigt.' })
@@ -167,6 +167,25 @@ createServer((request, response) => {
         if (!entry.clientName) return sendJson(response, 400, { error: 'Kundenname fehlt.' })
         const appointments = await readAppointments(); appointments.push(entry); await saveAppointments(appointments); sendJson(response, 201, entry)
       } catch { sendJson(response, 400, { error: 'Termin konnte nicht gespeichert werden.' }) }
+    })
+    return
+  }
+
+  const appointmentMatch = pathname.match(/^\/api\/appointments\/([^/]+)$/)
+  if (appointmentMatch && request.method === 'PATCH') {
+    let body = ''
+    request.on('data', chunk => { if (body.length < 25000000) body += chunk })
+    request.on('end', async () => {
+      try {
+        const input = JSON.parse(body)
+        const appointmentId = decodeURIComponent(appointmentMatch[1])
+        const entries = await readAppointments()
+        const entry = entries.find(item => item.id === appointmentId)
+        if (!entry) return sendJson(response, 404, { error: 'Termin wurde nicht gefunden.' })
+        if (Array.isArray(input.attachments)) entry.attachments = input.attachments.slice(0, 30).map(file => ({ name: cleanText(file.name, 180), category: cleanText(file.category, 80) || 'Sonstiges', type: cleanText(file.type, 80), data: String(file.data || '').slice(0, 15000000), createdAt: new Date().toISOString() })).filter(file => file.name && file.data.startsWith('data:image/'))
+        await saveAppointments(entries)
+        sendJson(response, 200, entry)
+      } catch { sendJson(response, 400, { error: 'Terminakte konnte nicht aktualisiert werden.' }) }
     })
     return
   }
