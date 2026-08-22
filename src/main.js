@@ -848,9 +848,14 @@ function initLightbox(){
   document.addEventListener('keydown',event=>{if(!lightbox.classList.contains('open'))return;if(event.key==='Escape')close();if(event.key==='ArrowLeft')move(-1);if(event.key==='ArrowRight')move(1)})
 }
 
-function render(){
+async function render(){
   const admin=location.pathname.replace(/\/+$/, '').startsWith('/admin')
   const referencesPage=location.pathname.replace(/\/+$/, '')==='/referenzen'
+  if(admin){
+    document.querySelector('#app').innerHTML='<main class="admin-auth-check"><span>TATTOO · SFUMATO</span><i></i><p>Admin-Session wird geprüft …</p></main>'
+    try{const response=await fetch('/api/auth/me',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-store'}),type=response.headers.get('content-type')||'',user=type.includes('application/json')?await response.json():null;if(!response.ok||!user?.id){location.replace('/admin/login');return}}
+    catch{location.replace('/admin/login');return}
+  }
   const serverAccess = document.cookie.split(';').some(cookie => cookie.trim() === 'sfumato_site_client=1')
   if (!admin && !serverAccess && sessionStorage.getItem(ACCESS_KEY) !== 'true') {
     document.querySelector('#app').innerHTML = passwordMarkup()
