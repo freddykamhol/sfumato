@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('.', import.meta.url))
 const port = Number(process.env.PORT) || 3000
+const serverVersion = '2026-08-22.1'
 const sitePassword = process.env.DEMO_PASSWORD || 'Sfumato2026'
 const cookieName = 'sfumato_site_auth'
 const authToken = createHmac('sha256', sitePassword).update('sfumato-site-access').digest('hex')
@@ -100,6 +101,7 @@ const mimeTypes = {
 await ensureDefaultAdmin()
 
 createServer(async (request, response) => {
+  response.setHeader('X-Sfumato-Server', serverVersion)
   const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname)
   const secureCookie=request.headers['x-forwarded-proto']==='https'?'; Secure':''
   const adminUser=await adminUserFromRequest(request)
