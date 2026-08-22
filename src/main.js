@@ -13,6 +13,13 @@ const demoRequests = [
 ]
 const arrow = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
 const instagram = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>'
+const adminWelcome = () => {
+  const now = new Date()
+  const hour = Number(new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', hour12: false }).format(now))
+  const greeting = hour < 11 ? 'Guten Morgen.' : hour < 18 ? 'Guten Tag.' : 'Guten Abend.'
+  const date = new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', weekday: 'long', day: '2-digit', month: 'long' }).format(now).toUpperCase()
+  return { greeting, date }
+}
 
 function siteMarkup() {
   return `
@@ -99,7 +106,7 @@ function settingsView(){return `<div class="admin-title"><div><span class="admin
   <section class="integration-card"><div class="integration-icon mail">✉</div><div><h3>SMTP E-Mail</h3><p>Rückfragen und Terminvorschläge direkt aus dem Adminpanel senden.</p></div><span class="connected">AKTIV</span><button data-smtp>SMTP konfigurieren</button></section>
   <section class="hours-card"><div class="settings-heading"><div><h3>Öffnungszeiten</h3><p>Basis für automatisch berechnete Terminvorschläge.</p></div><span>Europe/Berlin</span></div>${['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'].map((d,i)=>`<div class="hours-row"><label class="switch"><input type="checkbox" ${i!==0&&i!==5?'checked':''}><i></i></label><b>${d}</b><input type="time" value="10:00" ${i===0||i===5?'disabled':''}><span>bis</span><input type="time" value="18:00" ${i===0||i===5?'disabled':''}></div>`).join('')}<div class="hours-row"><label class="switch"><input type="checkbox"><i></i></label><b>Sonntag</b><span class="closed">Geschlossen</span></div></section>
   </div>`}
-function adminMarkup() { return `<div class="admin-shell"><aside class="admin-side"><a class="brand" href="#top"><span>TATTOO</span><i>·</i><span>SFUMATO</span></a><p>STUDIO OS</p><nav><button class="active" data-view="dashboard"><span>⌂</span>Dashboard</button><button data-view="requests"><span>01</span>Anfragen <b>${demoRequests.length}</b></button><button data-view="portfolio"><span>02</span>Referenzen</button><button data-view="settings"><span>03</span>Einstellungen</button></nav><div class="admin-user"><div class="avatar">TS</div><span><b>Studio Sfumato</b><small>Administrator</small></span></div><a href="#top" class="back">← Zur Website</a></aside><main class="admin-main"><header><div><p>FREITAG, 21. AUGUST</p><h1>Guten Morgen.</h1></div><div class="header-actions"><button aria-label="Benachrichtigungen">●</button><div class="avatar">TS</div></div></header><section id="admin-content">${dashboardView()}</section></main><div class="admin-modal" aria-hidden="true"></div></div>` }
+function adminMarkup() { const welcome=adminWelcome(); return `<div class="admin-shell"><aside class="admin-side"><a class="brand" href="#top"><span>TATTOO</span><i>·</i><span>SFUMATO</span></a><p>STUDIO OS</p><nav><button class="active" data-view="dashboard"><span>⌂</span>Dashboard</button><button data-view="requests"><span>01</span>Anfragen <b>${demoRequests.length}</b></button><button data-view="portfolio"><span>02</span>Referenzen</button><button data-view="settings"><span>03</span>Einstellungen</button></nav><div class="admin-user"><div class="avatar">TS</div><span><b>Studio Sfumato</b><small>Administrator</small></span></div><a href="#top" class="back">← Zur Website</a></aside><main class="admin-main"><header><div><p>${welcome.date}</p><h1>${welcome.greeting}</h1></div><div class="header-actions"><button aria-label="Benachrichtigungen">●</button><div class="avatar">TS</div></div></header><section id="admin-content">${dashboardView()}</section></main><div class="admin-modal" aria-hidden="true"></div></div>` }
 
 function initSite() {
   const menuButton = document.querySelector('.menu')
