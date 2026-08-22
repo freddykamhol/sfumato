@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
+import { connect as connectTls } from 'node:tls'
 import { extname, join, normalize, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -15,6 +16,8 @@ const requestsFile = join(dataDirectory, 'requests.json')
 const appointmentsFile = join(dataDirectory, 'appointments.json')
 const customerNotesFile = join(dataDirectory, 'customer-notes.json')
 const portfolioFile = join(dataDirectory, 'portfolio.json')
+const settingsFile = join(dataDirectory, 'settings.json')
+const usersFile = join(dataDirectory, 'users.json')
 const uploadsDirectory = join(dataDirectory, 'uploads')
 
 const readRequests = async () => {
@@ -43,11 +46,20 @@ const saveCustomerNotes = async notes => {
 }
 const readPortfolio = async () => { try { return JSON.parse(await readFile(portfolioFile,'utf8')) } catch(error){if(error.code==='ENOENT')return[];throw error} }
 const savePortfolio = async entries => { await mkdir(dataDirectory,{recursive:true});await writeFile(portfolioFile,JSON.stringify(entries,null,2),'utf8') }
+const defaultSettings={integrations:{pop3:{host:'',port:995,tls:true,user:'',password:'',enabled:false},smtp:{host:'',port:587,secure:false,user:'',password:'',from:''},telegram:{token:'',chatId:'',enabled:false}},calendar:{webcalToken:'',beforeMinutes:30,afterMinutes:30,hours:[{enabled:false,start:'10:00',end:'18:00'},{enabled:true,start:'10:00',end:'18:00'},{enabled:true,start:'10:00',end:'18:00'},{enabled:true,start:'10:00',end:'18:00'},{enabled:true,start:'10:00',end:'18:00'},{enabled:false,start:'10:00',end:'18:00'},{enabled:false,start:'10:00',end:'18:00'}],rules:[]}}
+const readSettings=async()=>{try{return {...defaultSettings,...JSON.parse(await readFile(settingsFile,'utf8'))}}catch(error){if(error.code==='ENOENT')return structuredClone(defaultSettings);throw error}}
+const saveSettings=async settings=>{await mkdir(dataDirectory,{recursive:true});await writeFile(settingsFile,JSON.stringify(settings,null,2),'utf8')}
+const readUsers=async()=>{try{return JSON.parse(await readFile(usersFile,'utf8'))}catch(error){if(error.code==='ENOENT')return[];throw error}}
+const saveUsers=async users=>{await mkdir(dataDirectory,{recursive:true});await writeFile(usersFile,JSON.stringify(users,null,2),'utf8')}
+const notifyTelegram=async(text)=>{try{const settings=await readSettings(),config=settings.integrations?.telegram;if(!config?.enabled||!config.token||!config.chatId)return;await fetch(`https://api.telegram.org/bot${config.token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:config.chatId,text})})}catch(error){console.error('[telegram]',error.message)}}
 const cleanText = (value, max = 1000) => String(value || '').replace(/[<>]/g, '').trim().slice(0, max)
 const sendJson = (response, status, payload) => {
   response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
   response.end(JSON.stringify(payload))
 }
+const pop3Command=(socket,command,multiline=false)=>new Promise((resolve,reject)=>{let buffer='';const onData=chunk=>{buffer+=chunk.toString('utf8');const complete=multiline?buffer.includes('\r\n.\r\n'):buffer.includes('\r\n');if(!complete)return;socket.off('data',onData);if(!buffer.startsWith('+OK'))reject(new Error(buffer.split('\r\n')[0]));else resolve(buffer)};socket.on('data',onData);socket.once('error',reject);socket.write(`${command}\r\n`)})
+let pop3Scanning=false
+const scanPop3Inbox=async()=>{if(pop3Scanning)return;pop3Scanning=true;let socket;try{const settings=await readSettings(),config=settings.integrations?.pop3;if(!config?.enabled||!config.host||!config.user||!config.password)return;socket=connectTls({host:config.host,port:Number(config.port)||995,servername:config.host,rejectUnauthorized:true});await new Promise((resolve,reject)=>{socket.once('secureConnect',resolve);socket.once('error',reject)});await pop3Command(socket,`USER ${config.user}`);await pop3Command(socket,`PASS ${config.password}`);const uidResponse=await pop3Command(socket,'UIDL',true),lines=uidResponse.split('\r\n').slice(1,-2),processed=new Set(config.processedUids||[]),requests=await readRequests();for(const line of lines.slice(-100)){const[number,uid]=line.split(/\s+/);if(!number||!uid||processed.has(uid))continue;const raw=await pop3Command(socket,`RETR ${number}`,true),reference=raw.match(/#([A-Z0-9]{5,8})\b/i),entry=reference&&requests.find(item=>String(item.reference||item.id).replace(/[^a-z0-9]/gi,'').toLowerCase().endsWith(reference[1].toLowerCase()));if(entry){const subject=raw.match(/^Subject:\s*(.+)$/im)?.[1]?.trim()||'E-Mail-Antwort',from=raw.match(/^From:\s*(.+)$/im)?.[1]?.trim()||config.user;entry.emails=Array.isArray(entry.emails)?entry.emails:[];entry.emails.push({id:`MAIL-${Date.now().toString(36).toUpperCase()}`,direction:'inbound',from:cleanText(from,180),subject:cleanText(subject,300),text:cleanText(raw.split('\r\n\r\n').slice(1).join('\n'),10000),createdAt:new Date().toISOString()})}processed.add(uid)}await saveRequests(requests);settings.integrations.pop3.processedUids=[...processed].slice(-5000);settings.integrations.pop3.lastScanAt=new Date().toISOString();await saveSettings(settings);await pop3Command(socket,'QUIT')}catch(error){console.error('[pop3]',error.message)}finally{socket?.destroy();pop3Scanning=false}}
 
 const loginPage = error => `<!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -88,6 +100,7 @@ createServer((request, response) => {
     response.end('ok')
     return
   }
+  if(pathname==='/api/calendar.ics'&&request.method==='GET'){const token=new URL(request.url,'http://localhost').searchParams.get('token');Promise.all([readSettings(),readAppointments()]).then(([settings,entries])=>{if(!settings.calendar.webcalToken||token!==settings.calendar.webcalToken)return sendJson(response,401,{error:'Ungültiger Kalender-Link.'});const stamp=value=>new Date(value).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');const escape=value=>String(value||'').replace(/([,;\\])/g,'\\$1').replace(/\n/g,'\\n');const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Tattoo Sfumato//Studio OS//DE','CALSCALE:GREGORIAN',...entries.flatMap(item=>['BEGIN:VEVENT',`UID:${item.id}@sfumato`,`DTSTAMP:${stamp(item.createdAt||Date.now())}`,`DTSTART:${stamp(item.start)}`,`DTEND:${stamp(item.end)}`,`SUMMARY:${escape(item.clientName)} · Tattoo`,`DESCRIPTION:${escape(item.style)} · ${escape(item.placement)}`,'END:VEVENT']),'END:VCALENDAR'].join('\r\n');response.writeHead(200,{'Content-Type':'text/calendar; charset=utf-8','Cache-Control':'no-store'});response.end(ics)}).catch(()=>sendJson(response,500,{error:'Kalender konnte nicht erstellt werden.'}));return}
 
   if (pathname === '/login' && request.method === 'POST') {
     let body = ''
@@ -125,6 +138,11 @@ createServer((request, response) => {
   }
 
   if(pathname==='/api/portfolio'&&request.method==='GET'){readPortfolio().then(entries=>sendJson(response,200,entries)).catch(()=>sendJson(response,500,{error:'Referenzen konnten nicht geladen werden.'}));return}
+  if(pathname==='/api/settings'&&request.method==='GET'){readSettings().then(async settings=>{if(!settings.calendar.webcalToken){settings.calendar.webcalToken=createHmac('sha256',sitePassword).update(String(Date.now())).digest('hex').slice(0,24);await saveSettings(settings)}sendJson(response,200,settings)}).catch(()=>sendJson(response,500,{error:'Einstellungen konnten nicht geladen werden.'}));return}
+  if(pathname==='/api/settings'&&request.method==='PUT'){let body='';request.on('data',chunk=>{if(body.length<2000000)body+=chunk});request.on('end',async()=>{try{const input=JSON.parse(body),settings=await readSettings(),next={...settings,...input,integrations:{...settings.integrations,...input.integrations},calendar:{...settings.calendar,...input.calendar}};if(!next.calendar.webcalToken)next.calendar.webcalToken=createHmac('sha256',sitePassword).update(String(Date.now())).digest('hex').slice(0,24);await saveSettings(next);sendJson(response,200,next)}catch{sendJson(response,400,{error:'Einstellungen konnten nicht gespeichert werden.'})}});return}
+  if(pathname==='/api/users'&&request.method==='GET'){readUsers().then(users=>sendJson(response,200,users.map(({password,...user})=>user))).catch(()=>sendJson(response,500,{error:'Benutzer konnten nicht geladen werden.'}));return}
+  if(pathname==='/api/users'&&request.method==='POST'){let body='';request.on('data',chunk=>{if(body.length<100000)body+=chunk});request.on('end',async()=>{try{const input=JSON.parse(body),users=await readUsers(),entry={id:`USR-${Date.now().toString(36).toUpperCase()}`,name:cleanText(input.name,120),email:cleanText(input.email,180).toLowerCase(),role:['Administrator','Studio','Lesen'].includes(input.role)?input.role:'Studio',active:input.active!==false,password:cleanText(input.password,200),createdAt:new Date().toISOString()};if(!entry.name||!entry.email)return sendJson(response,400,{error:'Name und E-Mail werden benötigt.'});users.push(entry);await saveUsers(users);const{password,...safe}=entry;sendJson(response,201,safe)}catch{sendJson(response,400,{error:'Benutzer konnte nicht angelegt werden.'})}});return}
+  const userMatch=pathname.match(/^\/api\/users\/([^/]+)$/);if(userMatch&&request.method==='PATCH'){let body='';request.on('data',chunk=>body+=chunk);request.on('end',async()=>{try{const input=JSON.parse(body),users=await readUsers(),entry=users.find(item=>item.id===decodeURIComponent(userMatch[1]));if(!entry)return sendJson(response,404,{error:'Benutzer nicht gefunden.'});for(const field of ['name','email','role'])if(input[field]!==undefined)entry[field]=cleanText(input[field],180);if(input.active!==undefined)entry.active=Boolean(input.active);if(input.password)entry.password=cleanText(input.password,200);await saveUsers(users);const{password,...safe}=entry;sendJson(response,200,safe)}catch{sendJson(response,400,{error:'Benutzer konnte nicht aktualisiert werden.'})}});return}if(userMatch&&request.method==='DELETE'){readUsers().then(async users=>{await saveUsers(users.filter(item=>item.id!==decodeURIComponent(userMatch[1])));sendJson(response,200,{deleted:true})});return}
   if(pathname==='/api/portfolio'&&request.method==='POST'){let body='';request.on('data',chunk=>{if(body.length<20000000)body+=chunk});request.on('end',async()=>{try{const input=JSON.parse(body),match=String(input.image||'').match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);if(!match)return sendJson(response,400,{error:'Gültiges Bild fehlt.'});const id=`REF-${Date.now().toString(36).toUpperCase()}`,directory=join(uploadsDirectory,'portfolio');await mkdir(directory,{recursive:true});const extension=match[1]==='image/jpeg'?'.jpg':match[1]==='image/png'?'.png':'.webp',filename=`${id}${extension}`;await writeFile(join(directory,filename),Buffer.from(match[2],'base64'));const entries=await readPortfolio(),entry={id,title:cleanText(input.title,120)||'Neue Arbeit',style:cleanText(input.style,80)||'Fineline',placement:cleanText(input.placement,120),description:cleanText(input.description,1000),published:Boolean(input.published),featured:Boolean(input.featured),position:cleanText(input.position,30)||'50% 50%',image:`/api/uploads/portfolio/${filename}`,order:entries.length,createdAt:new Date().toISOString()};entries.push(entry);await savePortfolio(entries);sendJson(response,201,entry)}catch{sendJson(response,400,{error:'Referenz konnte nicht gespeichert werden.'})}});return}
   const portfolioMatch=pathname.match(/^\/api\/portfolio\/([^/]+)$/)
   if(portfolioMatch&&request.method==='PATCH'){let body='';request.on('data',chunk=>{if(body.length<1000000)body+=chunk});request.on('end',async()=>{try{const input=JSON.parse(body),entries=await readPortfolio(),entry=entries.find(item=>item.id===decodeURIComponent(portfolioMatch[1]));if(!entry)return sendJson(response,404,{error:'Referenz nicht gefunden.'});for(const field of ['title','style','placement','description','position'])if(input[field]!==undefined)entry[field]=cleanText(input[field],field==='description'?1000:120);for(const field of ['published','featured'])if(input[field]!==undefined)entry[field]=Boolean(input[field]);if(input.order!==undefined)entry.order=Number(input.order)||0;await savePortfolio(entries);sendJson(response,200,entry)}catch{sendJson(response,400,{error:'Referenz konnte nicht aktualisiert werden.'})}});return}
@@ -258,6 +276,7 @@ createServer((request, response) => {
         const requests = await readRequests()
         requests.unshift(entry)
         await saveRequests(requests.slice(0, 1000))
+        notifyTelegram(`Neue Tattoo-Anfrage ${entry.reference}\n${entry.name}\n${entry.style} · ${entry.placement}`)
         sendJson(response, 201, entry)
       } catch { sendJson(response, 400, { error: 'Anfrage konnte nicht verarbeitet werden.' }) }
     })
@@ -289,4 +308,4 @@ createServer((request, response) => {
   })
   if (request.method === 'HEAD') response.end()
   else createReadStream(filePath).pipe(response)
-}).listen(port, '0.0.0.0', () => console.log(`Sfumato site running on port ${port}`))
+}).listen(port, '0.0.0.0', () => {console.log(`Sfumato site running on port ${port}`);scanPop3Inbox();setInterval(scanPop3Inbox,120000).unref()})

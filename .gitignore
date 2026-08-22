@@ -15,6 +15,8 @@ data/requests.json
 data/appointments.json
 data/customer-notes.json
 data/portfolio.json
+data/settings.json
+data/users.json
 data/uploads/
 
 # Editor directories and files
