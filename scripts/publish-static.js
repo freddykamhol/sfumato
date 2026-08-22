@@ -31,7 +31,7 @@ for (const entry of readdirSync(distRoot)) {
   }
 }
 
-for (const route of ['referenzen', 'admin', 'admin/login', 'admin/anfragen', 'admin/referenzen', 'admin/einstellungen', 'admin/einstellungen/schnittstellen', 'admin/einstellungen/benutzer', 'admin/einstellungen/kalender', 'admin/termin-neu', 'admin/terminakten', 'admin/kunden']) {
+for (const route of ['referenzen', 'impressum', 'datenschutz', 'admin', 'admin/login', 'admin/anfragen', 'admin/referenzen', 'admin/einstellungen', 'admin/einstellungen/schnittstellen', 'admin/einstellungen/benutzer', 'admin/einstellungen/kalender', 'admin/termin-neu', 'admin/terminakten', 'admin/kunden']) {
   const routeRoot = join(projectRoot, route)
   mkdirSync(routeRoot, { recursive: true })
   const routeIndex = join(routeRoot, 'index.html')
@@ -42,6 +42,10 @@ for (const route of ['referenzen', 'admin', 'admin/login', 'admin/anfragen', 'ad
       .replace('Tattoo Einbeck | Tattoo Sfumato – Realistic, Microrealism & Fineline', 'Tattoo Referenzen aus Einbeck | Tattoo Sfumato')
       .replace('https://tattoosfumato.de/"', 'https://tattoosfumato.de/referenzen/"')
       .replace('Tattoo Sfumato – dein Tattoo-Studio in Einbeck für Realistic, Microrealism und Fineline. Individuelle Tattoos in familiärer Atmosphäre.', 'Tattoo-Referenzen von Tattoo Sfumato in Einbeck: Realistic, Microrealism und Fineline. Entdecke ausgewählte Arbeiten aus unserem Studio.')
+  } else if (route === 'impressum') {
+    html = html.replace(/<title>[^<]+<\/title>/, '<title>Impressum | Tattoo Sfumato Einbeck</title>').replace('https://tattoosfumato.de/"', 'https://tattoosfumato.de/impressum/"').replace('content="index,follow,max-image-preview:large"', 'content="noindex,follow"')
+  } else if (route === 'datenschutz') {
+    html = html.replace(/<title>[^<]+<\/title>/, '<title>Datenschutzerklärung | Tattoo Sfumato Einbeck</title>').replace('https://tattoosfumato.de/"', 'https://tattoosfumato.de/datenschutz/"').replace('content="index,follow,max-image-preview:large"', 'content="noindex,follow"')
   } else if (route.startsWith('admin')) {
     html = html.replace('content="index,follow,max-image-preview:large"', 'content="noindex,nofollow,noarchive"')
   }
