@@ -96,7 +96,7 @@
   font-size: 11px;
 }
 
-.customer-list article {
+.customer-list > button {
   display: grid;
   grid-template-columns: 44px 1fr 90px 90px;
   gap: 16px;
@@ -104,6 +104,16 @@
   min-height: 76px;
   padding: 13px 20px;
   border-bottom: 1px solid #e7e4de;
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.customer-list > button:hover {
+  background: #faf9f6;
 }
 
 .customer-avatar {
@@ -117,16 +127,101 @@
   font-size: 9px;
 }
 
-.customer-list article div b,
-.customer-list article div small {
+.customer-list > button div b,
+.customer-list > button div small {
   display: block;
 }
 
-.customer-list article div b {
+.customer-hero {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 28px;
+  border-radius: 8px;
+  background: #171815;
+  color: #f1eee7;
+}
+
+.customer-hero .customer-avatar {
+  width: 62px;
+  height: 62px;
+  font-size: 14px;
+}
+
+.customer-hero h2 {
+  margin: 7px 0;
+  font-size: 38px;
+}
+
+.customer-hero p {
+  margin: 0;
+  color: #9b9d95;
   font-size: 11px;
 }
 
-.customer-list article div small {
+.customer-history {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.customer-history section {
+  overflow: hidden;
+  border: 1px solid #dedbd4;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.customer-history h3 {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  padding: 18px;
+  border-bottom: 1px solid #e7e4de;
+  font-size: 15px;
+}
+
+.customer-history section > button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 15px 18px;
+  border: 0;
+  border-bottom: 1px solid #ece9e3;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.customer-history section > button:hover {
+  background: #faf9f6;
+}
+
+.customer-history button b,
+.customer-history button small {
+  display: block;
+}
+
+.customer-history button small,
+.customer-history button i,
+.customer-history section > p {
+  margin-top: 5px;
+  color: #918d85;
+  font-size: 10px;
+  font-style: normal;
+}
+
+.customer-history section > p {
+  padding: 18px;
+}
+
+.customer-list > button div b {
+  font-size: 11px;
+}
+
+.customer-list > button div small {
   margin-top: 5px;
   color: #918d85;
   font-size: 8px;
@@ -186,12 +281,20 @@
     font-size: 15px;
   }
 
-  .customer-list article {
+  .customer-list > button {
     grid-template-columns: 42px 1fr 55px;
     padding-inline: 13px;
   }
 
-  .customer-list article > div:last-child {
+  .customer-list > button > div:last-child {
     display: none;
+  }
+
+  .customer-history {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-hero {
+    padding: 20px;
   }
 }

@@ -43,7 +43,7 @@
 .request-row span > b,
 .appointment-files-list small,
 .appointment-files-list i,
-.customer-list article div small,
+.customer-list > button div small,
 .today-file-list span small,
 .today-file-list i,
 .calendar-head > div:last-child,
@@ -54,7 +54,7 @@
 }
 
 .request-row,
-.customer-list article div b,
+.customer-list > button div b,
 .appointment-files-list span b,
 .today-file-list span b,
 .project-card dd,
@@ -128,7 +128,7 @@
 
   .request-row small,
   .appointment-files-list small,
-  .customer-list article div small {
+  .customer-list > button div small {
     font-size: 10px;
   }
 }
