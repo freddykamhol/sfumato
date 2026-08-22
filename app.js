@@ -280,8 +280,9 @@ createServer(async (request, response) => {
   if (escapedRoot || !existsSync(filePath) || statSync(filePath).isDirectory()) filePath = join(root, 'index.html')
 
   const extension = extname(filePath).toLowerCase()
+  const contentType = pathname === '/llms.txt' ? 'text/markdown; charset=utf-8' : mimeTypes[extension] || 'application/octet-stream'
   response.writeHead(200, {
-    'Content-Type': mimeTypes[extension] || 'application/octet-stream',
+    'Content-Type': contentType,
     'Cache-Control': ['.html', '.txt', '.xml'].includes(extension) ? 'no-cache' : 'public, max-age=31536000, immutable',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
