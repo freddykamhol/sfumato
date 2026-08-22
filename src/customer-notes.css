@@ -67,9 +67,16 @@
 
 .customer-note-list {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   padding: 20px 24px 24px;
 }
+
+.customer-note-list > .today-empty { grid-column: 1 / -1; }
+.customer-note-tools { display: flex; align-items: center; gap: 7px; }
+.customer-note-tools button { display: grid; width: 28px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #8f8980; cursor: pointer; transition: color .2s, background .2s, transform .2s; }
+.customer-note-tools button:hover, .customer-note-tools button:focus-visible { outline: 0; background: #f0d8d3; color: #a52e26; transform: scale(1.06); }
+.customer-note-tools svg { width: 15px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
 
 .customer-note-list article {
   padding: 16px 18px;
@@ -147,4 +154,6 @@
     padding-right: 16px;
     padding-left: 16px;
   }
+
+  .customer-note-list { grid-template-columns: 1fr; }
 }

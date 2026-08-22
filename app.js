@@ -143,6 +143,18 @@ createServer((request, response) => {
     return
   }
 
+  const customerNoteMatch = pathname.match(/^\/api\/customer-notes\/([^/]+)$/)
+  if (customerNoteMatch && request.method === 'DELETE') {
+    const noteId = decodeURIComponent(customerNoteMatch[1])
+    readCustomerNotes().then(async notes => {
+      const remaining = notes.filter(note => note.id !== noteId)
+      if (remaining.length === notes.length) return sendJson(response, 404, { error: 'Kundennotiz wurde nicht gefunden.' })
+      await saveCustomerNotes(remaining)
+      sendJson(response, 200, { deleted: true, id: noteId })
+    }).catch(() => sendJson(response, 500, { error: 'Kundennotiz konnte nicht gelöscht werden.' }))
+    return
+  }
+
   if (pathname === '/api/appointments' && request.method === 'POST') {
     let body = ''
     request.on('data', chunk => { if (body.length < 100000) body += chunk })
