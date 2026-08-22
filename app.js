@@ -76,6 +76,10 @@ const mimeTypes = {
 createServer((request, response) => {
   const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname)
 
+  if (pathname === '/api/messages/inbound' && request.method === 'POST') {
+    let body='';request.on('data',chunk=>{if(body.length<2000000)body+=chunk});request.on('end',async()=>{try{const input=JSON.parse(body),secret=process.env.INBOUND_EMAIL_SECRET;if(!secret||request.headers['x-inbound-secret']!==secret)return sendJson(response,401,{error:'Webhook nicht autorisiert.'});const haystack=`${input.subject||''} ${input.text||''}`,match=haystack.match(/#([A-Z0-9]{5,8})\b/i);if(!match)return sendJson(response,422,{error:'Keine Anfragenummer gefunden.'});const entries=await readRequests(),entry=entries.find(item=>String(item.reference||item.id).replace(/[^a-z0-9]/gi,'').toLowerCase().endsWith(match[1].toLowerCase()));if(!entry)return sendJson(response,404,{error:'Anfrage nicht gefunden.'});entry.emails=Array.isArray(entry.emails)?entry.emails:[];entry.emails.push({id:`MAIL-${Date.now().toString(36).toUpperCase()}`,direction:'inbound',from:cleanText(input.from,180),subject:cleanText(input.subject,300),text:cleanText(input.text,10000),createdAt:input.date&&Number.isFinite(new Date(input.date).getTime())?new Date(input.date).toISOString():new Date().toISOString()});await saveRequests(entries);sendJson(response,201,{matched:entry.id})}catch{sendJson(response,400,{error:'E-Mail konnte nicht zugeordnet werden.'})}});return
+  }
+
   if (pathname === '/health') {
     response.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' })
     response.end('ok')
@@ -202,6 +206,11 @@ createServer((request, response) => {
     return
   }
 
+  const requestMatch = pathname.match(/^\/api\/requests\/([^/]+)$/)
+  if (requestMatch && request.method === 'PATCH') {
+    let body='';request.on('data',chunk=>{if(body.length<3000000)body+=chunk});request.on('end',async()=>{try{const input=JSON.parse(body),entries=await readRequests(),entry=entries.find(item=>item.id===decodeURIComponent(requestMatch[1]));if(!entry)return sendJson(response,404,{error:'Anfrage nicht gefunden.'});if(input.estimatedHours!==undefined)entry.estimatedHours=Math.max(.5,Math.min(24,Number(input.estimatedHours)||4));if(typeof input.status==='string')entry.status=cleanText(input.status,40);if(Array.isArray(input.proposals))entry.proposals=input.proposals.slice(-30);if(Array.isArray(input.timeline))entry.timeline=input.timeline.slice(-200);if(Array.isArray(input.emails))entry.emails=input.emails.slice(-200);if(input.bookedAppointmentId!==undefined)entry.bookedAppointmentId=cleanText(input.bookedAppointmentId,100);await saveRequests(entries);sendJson(response,200,entry)}catch{sendJson(response,400,{error:'Anfrage konnte nicht aktualisiert werden.'})}});return
+  }
+
   if (pathname === '/api/requests' && request.method === 'POST') {
     let body = ''
     let tooLarge = false
@@ -213,7 +222,7 @@ createServer((request, response) => {
       if (tooLarge) return sendJson(response, 413, { error: 'Anfrage ist zu groß.' })
       try {
         const input = JSON.parse(body)
-        const requestId = `LT-${Date.now().toString().slice(-7)}`
+        const requestId = `REQ-${Date.now().toString(36).slice(-6).toUpperCase()}`
         const references = []
         const incomingReferences = Array.isArray(input.references) ? input.references.slice(0, 5) : []
         if (incomingReferences.length) await mkdir(join(uploadsDirectory, requestId), { recursive: true })
@@ -229,6 +238,7 @@ createServer((request, response) => {
         }
         const entry = {
           id: requestId,
+          reference: `#${requestId.replace(/[^a-z0-9]/gi,'').slice(-6).toUpperCase()}`,
           name: cleanText(input.name, 120), email: cleanText(input.email, 180), phone: cleanText(input.phone, 60),
           style: cleanText(input.style, 80) || 'Nicht angegeben', placement: cleanText(input.placement, 160),
           size: cleanText(input.size, 80), idea: cleanText(input.idea, 4000),
