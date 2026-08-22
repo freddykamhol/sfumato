@@ -1,6 +1,7 @@
 import './style.css'
 import './admin-sticky.css'
 import './uploads.css'
+import './calendar.css'
 import signatureUrl from './assets/Signatur2.png?inline'
 
 const portfolio = [
@@ -9,6 +10,8 @@ const portfolio = [
   { title: 'Wild Peony', type: 'Microrealism · Detail', position: '50% 78%' },
 ]
 const demoRequests = []
+const appointments = []
+let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
 const LOCAL_REQUESTS_KEY = 'sfumato-booking-requests'
 const readLocalRequests = () => {
   try { return JSON.parse(localStorage.getItem(LOCAL_REQUESTS_KEY) || '[]') }
@@ -92,11 +95,20 @@ function siteMarkup() {
 
 function dashboardView(){
   const days=['Mo','Di','Mi','Do','Fr','Sa','So']
-  const cells=Array.from({length:35},(_,i)=>i<3||i>33?'':i-2)
-  const events={5:'10:00 Mara',8:'13:30 Jonas',12:'11:00 Beratung',18:'15:00 Sina',21:'10:30 Alex',26:'14:00 Block'}
-  return `<div class="admin-title"><div><span class="admin-kicker">ÜBERSICHT</span><h2>Dashboard</h2><p>Termine, offene Anfragen und Auslastung auf einen Blick.</p></div><button class="sync-btn"><i></i> Google Kalender synchronisiert</button></div>
-  <div class="dashboard-stats"><article><span>HEUTE</span><b>2</b><small>Termine · 6,5 Std.</small></article><article><span>NEUE ANFRAGEN</span><b>${demoRequests.filter(x=>x.status==='Neu').length}</b><small>noch unbeantwortet</small></article><article><span>AUSLASTUNG</span><b>78%</b><small>kommende 30 Tage</small></article><article><span>NÄCHSTER SLOT</span><b class="date-stat">03. Sep.</b><small>ab 12:30 Uhr</small></article></div>
-  <div class="calendar-card"><div class="calendar-head"><div><button>‹</button><h3>August 2026</h3><button>›</button></div><div><span class="cal-dot studio"></span>Studio <span class="cal-dot google"></span>Google</div></div><div class="calendar-grid">${days.map(d=>`<b>${d}</b>`).join('')}${cells.map(d=>`<button class="cal-day ${events[d]?'has-event':''}" ${events[d]?`data-appointment="${d}" aria-label="Termin am ${d}. August öffnen"`:''}>${d?`<span>${d}</span>${events[d]?`<small>${events[d]}</small>`:''}`:''}</button>`).join('')}</div></div>`
+  const year=calendarMonth.getFullYear(), month=calendarMonth.getMonth()
+  const firstOffset=(new Date(year,month,1).getDay()+6)%7
+  const daysInMonth=new Date(year,month+1,0).getDate()
+  const cells=Array.from({length:42},(_,i)=>{const day=i-firstOffset+1;return day>0&&day<=daysInMonth?day:''})
+  const key=date=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
+  const todayKey=key(new Date())
+  const todayAppointments=appointments.filter(item=>String(item.start).slice(0,10)===todayKey).sort((a,b)=>new Date(a.start)-new Date(b.start))
+  const monthName=new Intl.DateTimeFormat('de-DE',{month:'long',year:'numeric'}).format(calendarMonth)
+  const future=appointments.filter(item=>new Date(item.start)>new Date()).sort((a,b)=>new Date(a.start)-new Date(b.start))[0]
+  const todayHours=todayAppointments.reduce((sum,item)=>sum+Math.max(0,(new Date(item.end)-new Date(item.start))/3600000),0)
+  return `<div class="admin-title"><div><span class="admin-kicker">ÜBERSICHT</span><h2>Dashboard</h2><p>Termine, offene Anfragen und Auslastung auf einen Blick.</p></div><div class="dashboard-actions"><button class="secondary-action" data-new-appointment>+ Termin anlegen</button><span class="sync-btn"><i></i> Studio-Kalender aktiv</span></div></div>
+  <div class="dashboard-stats"><article><span>HEUTE</span><b>${todayAppointments.length}</b><small>Termine · ${todayHours.toLocaleString('de-DE',{maximumFractionDigits:1})} Std.</small></article><article><span>NEUE ANFRAGEN</span><b>${demoRequests.filter(x=>!x.readAt).length}</b><small>noch ungelesen</small></article><article><span>TERMINE</span><b>${appointments.length}</b><small>insgesamt geplant</small></article><article><span>NÄCHSTER TERMIN</span><b class="date-stat">${future?new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'short'}).format(new Date(future.start)):'—'}</b><small>${future?new Intl.DateTimeFormat('de-DE',{hour:'2-digit',minute:'2-digit'}).format(new Date(future.start))+' Uhr':'noch nicht geplant'}</small></article></div>
+  <section class="today-files"><div class="today-files-head"><div><span class="admin-kicker">HEUTE</span><h3>Heutige Terminakten</h3></div><b>${todayAppointments.length}</b></div>${todayAppointments.length?`<div class="today-file-list">${todayAppointments.map(item=>`<button data-appointment="${item.id}"><time>${new Intl.DateTimeFormat('de-DE',{hour:'2-digit',minute:'2-digit'}).format(new Date(item.start))}</time><span><b>${item.clientName}</b><small>${item.style||'Tattoo-Termin'} · ${item.placement||'Studio'}</small></span><i>Akte öffnen ↗</i></button>`).join('')}</div>`:'<div class="today-empty">Heute sind keine Terminakten eingeplant.</div>'}</section>
+  <div class="calendar-card"><div class="calendar-head"><div><button data-calendar-prev aria-label="Vorheriger Monat">‹</button><h3>${monthName}</h3><button data-calendar-next aria-label="Nächster Monat">›</button></div><div><span class="cal-dot studio"></span>Studio <span class="cal-dot google"></span>Google</div></div><div class="calendar-grid">${days.map(d=>`<b>${d}</b>`).join('')}${cells.map(day=>{if(!day)return'<span class="cal-day empty"></span>';const dateKey=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;const entries=appointments.filter(item=>String(item.start).slice(0,10)===dateKey);return`<button class="cal-day ${entries.length?'has-event':''} ${dateKey===todayKey?'today':''}" ${entries.length?`data-appointment="${entries[0].id}" aria-label="Termin am ${day}. öffnen"`:''}><span>${day}</span>${entries.slice(0,2).map(item=>`<small>${new Intl.DateTimeFormat('de-DE',{hour:'2-digit',minute:'2-digit'}).format(new Date(item.start))} ${item.clientName}</small>`).join('')}${entries.length>2?`<em>+${entries.length-2} weitere</em>`:''}</button>`}).join('')}</div></div>`
 }
 function appointmentView(day){
   const client=day==='8'?'Jonas R.':day==='18'?'Sina V.':'Mara K.'
@@ -117,6 +129,13 @@ function appointmentView(day){
       <section><span>INTERNE NOTIZ</span><textarea rows="5">Bitte feine 3RL-Nadel vorbereiten. Kundin reagiert empfindlich auf Pflaster.</textarea><button>Notiz speichern</button></section>
     </aside>
   </div>`
+}
+function realAppointmentView(id) {
+  const item=appointments.find(appointment=>appointment.id===id)
+  if(!item)return `<div class="detail-top"><button class="detail-back" data-back-dashboard>← Kalender</button></div><div class="request-empty"><span>404</span><h3>Termin nicht gefunden.</h3><p>Die Terminakte ist nicht mehr vorhanden.</p></div>`
+  const start=new Date(item.start), end=new Date(item.end)
+  const request=demoRequests.find(entry=>entry.id===item.requestId)
+  return `<div class="detail-top"><button class="detail-back" data-back-dashboard>← Kalender</button><div><button class="secondary-action">Termin verschieben</button><button class="save-settings">Kundennachricht senden</button></div></div><div class="appointment-head"><div><span class="admin-kicker">BESTÄTIGTER TERMIN · ${item.source==='google'?'GOOGLE CALENDAR':'STUDIO'}</span><h2>${item.clientName}</h2><p>${item.style||'Tattoo-Termin'} · ${item.placement||'Studio'}</p></div><div class="appointment-time"><span>${new Intl.DateTimeFormat('de-DE',{month:'short'}).format(start).toUpperCase()}</span><b>${String(start.getDate()).padStart(2,'0')}</b><small>${new Intl.DateTimeFormat('de-DE',{hour:'2-digit',minute:'2-digit'}).format(start)}–${new Intl.DateTimeFormat('de-DE',{hour:'2-digit',minute:'2-digit'}).format(end)}</small></div></div><div class="request-detail-grid"><section class="project-card"><span>TERMINAKTE</span><dl><div><dt>Stil</dt><dd>${item.style||'Nicht angegeben'}</dd></div><div><dt>Körperstelle</dt><dd>${item.placement||'Nicht angegeben'}</dd></div><div><dt>Dauer</dt><dd>${Math.max(0,(end-start)/3600000).toLocaleString('de-DE')} Stunden</dd></div><div><dt>Kontakt</dt><dd>${item.phone||item.email||'Nicht angegeben'}</dd></div></dl><span>NOTIZ</span><p>${item.notes||request?.idea||'Keine Notiz vorhanden.'}</p>${request?.references?.length?`<span>REFERENZBILDER</span><div class="request-references">${request.references.map((reference,index)=>`<a href="${reference.url||reference.data}" target="_blank" rel="noopener"><img src="${reference.url||reference.data}" alt="Referenzbild ${index+1}"><small>${reference.name||`Referenz ${index+1}`}</small></a>`).join('')}</div>`:''}</section><section class="timeline-card"><span>VORBEREITUNG</span><div><i></i><p><b>Termin bestätigt</b><small>${new Intl.DateTimeFormat('de-DE',{dateStyle:'medium'}).format(start)}</small></p></div><textarea placeholder="Interne Notiz hinzufügen …">${item.internalNote||''}</textarea></section></div>`
 }
 function consultationBadge(request) {
   if (!request.consultation) return '<i class="consultation-badge none"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg><span>Keine Beratung</span></i>'
@@ -385,6 +404,17 @@ function initAdmin() {
     if (!response.ok || !text) throw new Error('Anfragen konnten nicht geladen werden.')
     return JSON.parse(text)
   }).then(syncAdminRequests).catch(() => syncAdminRequests([]))
+  fetch('/api/appointments', { headers: { Accept: 'application/json' } }).then(async response => {
+    const text = await response.text()
+    if (!response.ok || !text) throw new Error('Termine konnten nicht geladen werden.')
+    return JSON.parse(text)
+  }).then(entries => {
+    appointments.splice(0, appointments.length, ...entries.sort((a,b)=>new Date(a.start)-new Date(b.start)))
+    if (currentAdminView() === 'dashboard') content.innerHTML = dashboardView()
+    openAdminDeepLink()
+  }).catch(() => {
+    if (currentAdminView() === 'dashboard') content.innerHTML = dashboardView()
+  })
   const openModal=html=>{modal.innerHTML=`<div class="modal-backdrop" data-close></div><section class="modal-sheet">${html}</section>`;modal.classList.add('open');modal.setAttribute('aria-hidden','false')}
   const closeModal=()=>{modal.classList.remove('open');modal.setAttribute('aria-hidden','true');const url=new URL(location.href);url.searchParams.delete('aktion');history.replaceState(null,'',url)}
   modal.addEventListener('click',e=>{
@@ -397,6 +427,20 @@ function initAdmin() {
       e.target.textContent='✓ Im Kalender eingetragen';e.target.disabled=true
     } else if(e.target.closest('[data-close]')) closeModal()
   })
+  modal.addEventListener('submit', async e => {
+    const form=e.target.closest('[data-appointment-form]')
+    if(!form)return
+    e.preventDefault()
+    const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Wird gespeichert …'
+    try{
+      const payload=Object.fromEntries(new FormData(form))
+      payload.start=new Date(payload.start).toISOString();payload.end=new Date(payload.end).toISOString()
+      const response=await fetch('/api/appointments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+      const text=await response.text();const result=text?JSON.parse(text):null
+      if(!response.ok||!result?.id)throw new Error(result?.error||'Termin konnte nicht gespeichert werden.')
+      appointments.push(result);appointments.sort((a,b)=>new Date(a.start)-new Date(b.start));closeModal();content.innerHTML=dashboardView()
+    }catch(error){form.querySelector('.modal-form-error').textContent=error.message;submit.disabled=false;submit.textContent='Termin speichern →'}
+  })
   if (currentAdminView() === 'portfolio') initUploads()
   content.addEventListener('click', e => {
     if(e.target.closest('[data-reset-filters]')){
@@ -404,8 +448,16 @@ function initAdmin() {
       applyRequestFilters()
       return
     }
+    if(e.target.closest('[data-new-appointment]')){
+      const date=new Date();date.setMinutes(Math.ceil(date.getMinutes()/30)*30,0,0);const end=new Date(date.getTime()+3*3600000)
+      const localValue=value=>new Date(value.getTime()-value.getTimezoneOffset()*60000).toISOString().slice(0,16)
+      openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">STUDIO-KALENDER</span><h2>Termin anlegen</h2><form data-appointment-form><label>NAME<input required name="clientName" placeholder="Vor- und Nachname"></label><div class="smtp-grid"><label>BEGINN<input required type="datetime-local" name="start" value="${localValue(date)}"></label><label>ENDE<input required type="datetime-local" name="end" value="${localValue(end)}"></label><label>STIL<input name="style" placeholder="z. B. Fineline"></label><label>KÖRPERSTELLE<input name="placement" placeholder="z. B. Unterarm"></label></div><label>NOTIZ<textarea name="notes" rows="5" placeholder="Vorbereitung, Motiv, Besonderheiten …"></textarea></label><p class="modal-form-error" role="alert"></p><button class="save-settings modal-send" type="submit">Termin speichern →</button></form>`)
+      return
+    }
+    if(e.target.closest('[data-calendar-prev]')){calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()-1,1);content.innerHTML=dashboardView();return}
+    if(e.target.closest('[data-calendar-next]')){calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,1);content.innerHTML=dashboardView();return}
     const appointment=e.target.closest('[data-appointment]')
-    if(appointment){const url=new URL('/admin/',location.origin);url.searchParams.set('termin',appointment.dataset.appointment);if(location.href!==url.href)history.pushState(null,'',url);content.innerHTML=appointmentView(appointment.dataset.appointment);return}
+    if(appointment){const url=new URL('/admin/',location.origin);url.searchParams.set('termin',appointment.dataset.appointment);if(location.href!==url.href)history.pushState(null,'',url);content.innerHTML=realAppointmentView(appointment.dataset.appointment);return}
     if(e.target.closest('[data-back-dashboard]')){history.pushState(null,'','/admin/');content.innerHTML=dashboardView();return}
     if(e.target.closest('[data-confirm-slot]')){
       e.target.closest('.response-banner').innerHTML=`<div><span class="positive">KUNDIN HAT ZUGESAGT</span><b>Do, 03. September · 12:30–16:30 Uhr</b><small>Der Termin ist reserviert und bereit zur Übernahme.</small></div><button class="save-settings" data-calendar-add>In Google Kalender eintragen →</button>`;return

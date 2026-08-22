@@ -12,6 +12,7 @@ const cookieName = 'sfumato_site_auth'
 const authToken = createHmac('sha256', sitePassword).update('sfumato-site-access').digest('hex')
 const dataDirectory = join(root, 'data')
 const requestsFile = join(dataDirectory, 'requests.json')
+const appointmentsFile = join(dataDirectory, 'appointments.json')
 const uploadsDirectory = join(dataDirectory, 'uploads')
 
 const readRequests = async () => {
@@ -21,6 +22,14 @@ const readRequests = async () => {
 const saveRequests = async requests => {
   await mkdir(dataDirectory, { recursive: true })
   await writeFile(requestsFile, JSON.stringify(requests, null, 2), 'utf8')
+}
+const readAppointments = async () => {
+  try { return JSON.parse(await readFile(appointmentsFile, 'utf8')) }
+  catch (error) { if (error.code === 'ENOENT') return []; throw error }
+}
+const saveAppointments = async appointments => {
+  await mkdir(dataDirectory, { recursive: true })
+  await writeFile(appointmentsFile, JSON.stringify(appointments, null, 2), 'utf8')
 }
 const cleanText = (value, max = 1000) => String(value || '').replace(/[<>]/g, '').trim().slice(0, max)
 const sendJson = (response, status, payload) => {
@@ -96,6 +105,27 @@ createServer((request, response) => {
 
   if (pathname === '/api/requests' && request.method === 'GET') {
     readRequests().then(requests => sendJson(response, 200, requests)).catch(() => sendJson(response, 500, { error: 'Anfragen konnten nicht geladen werden.' }))
+    return
+  }
+
+  if (pathname === '/api/appointments' && request.method === 'GET') {
+    readAppointments().then(appointments => sendJson(response, 200, appointments)).catch(() => sendJson(response, 500, { error: 'Termine konnten nicht geladen werden.' }))
+    return
+  }
+
+  if (pathname === '/api/appointments' && request.method === 'POST') {
+    let body = ''
+    request.on('data', chunk => { if (body.length < 100000) body += chunk })
+    request.on('end', async () => {
+      try {
+        const input = JSON.parse(body)
+        const start = new Date(input.start), end = new Date(input.end)
+        if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) return sendJson(response, 400, { error: 'Ungültiger Terminzeitraum.' })
+        const entry = { id: `APT-${Date.now().toString(36).toUpperCase()}`, clientName: cleanText(input.clientName, 120), email: cleanText(input.email, 180), phone: cleanText(input.phone, 60), style: cleanText(input.style, 80), placement: cleanText(input.placement, 160), notes: cleanText(input.notes, 4000), requestId: cleanText(input.requestId, 80), source: cleanText(input.source, 30) || 'studio', start: start.toISOString(), end: end.toISOString(), createdAt: new Date().toISOString() }
+        if (!entry.clientName) return sendJson(response, 400, { error: 'Kundenname fehlt.' })
+        const appointments = await readAppointments(); appointments.push(entry); await saveAppointments(appointments); sendJson(response, 201, entry)
+      } catch { sendJson(response, 400, { error: 'Termin konnte nicht gespeichert werden.' }) }
+    })
     return
   }
 

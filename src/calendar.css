@@ -1,0 +1,158 @@
+.dashboard-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-actions .sync-btn {
+  display: inline-flex;
+  align-items: center;
+}
+
+.today-files {
+  margin-bottom: 22px;
+  overflow: hidden;
+  border: 1px solid #dedbd4;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.today-files-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid #e5e2dc;
+}
+
+.today-files-head h3 {
+  margin: 5px 0 0;
+  font: 400 21px var(--serif);
+}
+
+.today-files-head > b {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f0ded9;
+  color: #8b302a;
+  font-size: 10px;
+}
+
+.today-file-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.today-file-list button {
+  display: grid;
+  grid-template-columns: 58px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 18px 22px;
+  border: 0;
+  border-bottom: 1px solid #ece9e3;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.today-file-list button:nth-child(odd) {
+  border-right: 1px solid #ece9e3;
+}
+
+.today-file-list time {
+  color: var(--red);
+  font: 500 16px var(--sans);
+}
+
+.today-file-list span b,
+.today-file-list span small {
+  display: block;
+}
+
+.today-file-list span b {
+  font-size: 11px;
+}
+
+.today-file-list span small,
+.today-file-list i {
+  margin-top: 4px;
+  color: #8e8981;
+  font-size: 8px;
+  font-style: normal;
+}
+
+.today-empty {
+  padding: 28px 22px;
+  color: #918d85;
+  font-size: 10px;
+}
+
+.calendar-grid .cal-day.today > span {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--red);
+  color: #fff;
+}
+
+.calendar-grid .cal-day.empty {
+  cursor: default;
+  background: #faf9f6;
+}
+
+.cal-day em {
+  color: #8e8981;
+  font-size: 7px;
+  font-style: normal;
+}
+
+.modal-form-error {
+  min-height: 18px;
+  margin: 10px 0 0;
+  color: #a83b33;
+  font-size: 9px;
+}
+
+@media (max-width: 800px) {
+  .admin-title .dashboard-actions {
+    align-items: stretch;
+    width: 100%;
+    margin-top: 18px;
+  }
+
+  .dashboard-actions > * {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .today-file-list {
+    grid-template-columns: 1fr;
+  }
+
+  .today-file-list button:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .today-file-list button {
+    grid-template-columns: 52px 1fr;
+  }
+
+  .today-file-list i {
+    display: none;
+  }
+
+  .calendar-card {
+    padding: 14px;
+    overflow-x: auto;
+  }
+
+  .calendar-grid {
+    min-width: 650px;
+  }
+}
