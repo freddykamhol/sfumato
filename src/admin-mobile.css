@@ -1,5 +1,6 @@
 /* Final mobile layer for the complete studio admin panel. */
 .mobile-tabbar, .mobile-nav-head, .mobile-nav-backdrop { display: none; }
+.admin-logout { padding: 9px 11px; border: 1px solid #d4d1ca; border-radius: 6px; background: #fff; color: #5e5a53; font-size: 9px; }
 @media (max-width: 800px) {
   html, body, #app, .admin-shell, .admin-main { width: 100%; max-width: 100%; overflow-x: hidden; }
   body:has(.admin-shell) { background: #f2f1ed; }
