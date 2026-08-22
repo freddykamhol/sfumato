@@ -52,7 +52,7 @@ function siteMarkup() {
           <div class="film-shade"></div>
           <div class="film-status"><i></i><span>IMAGEFILM<br><b>SFUMATO / EINBECK</b></span></div>
           <button class="film-play" type="button" aria-label="Imagefilm abspielen"><span></span></button>
-          <div class="film-meta"><span>SFUMATO / EINBECK</span><span class="film-time">00:00</span></div>
+          <div class="film-meta"><button class="film-control-play" type="button" aria-label="Imagefilm abspielen"><span></span></button><input class="film-progress" type="range" min="0" max="100" value="0" step="0.1" aria-label="Videofortschritt"><span class="film-time">00:00</span><button class="film-fullscreen" type="button" aria-label="Vollbild öffnen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg></button></div>
         </div>
       </section>
       <section id="ablauf" class="process section-pad"><div class="section-head"><div><p class="section-no">[ 05 — DER ABLAUF ]</p><h2>Von der Idee<br><em>unter die Haut.</em></h2></div></div><div class="steps"><article><span>01</span><h3>Deine Anfrage</h3><p>Erzähl uns von deinem Motiv, der Stelle und deiner Wunschgröße. Referenzbilder helfen, müssen aber nicht perfekt sein.</p></article><article><span>02</span><h3>Konzept & Termin</h3><p>Wir klären Stil, Umfang und Budget. Danach erhältst du einen passenden Termin und alle Infos zur Vorbereitung.</p></article><article><span>03</span><h3>Dein Tattoo</h3><p>Am Termin finalisieren wir den Entwurf gemeinsam. Erst wenn alles passt, geht es los — ohne Zeitdruck.</p></article></div></section>
@@ -151,12 +151,20 @@ function initSite() {
   const observer = new IntersectionObserver(entries => entries.forEach(x => x.isIntersecting && x.target.classList.add('visible')), {threshold:.12}); document.querySelectorAll('.reveal').forEach(el=>observer.observe(el))
   const film = document.querySelector('.film-frame video')
   const filmButton = document.querySelector('.film-play')
+  const filmControlButton = document.querySelector('.film-control-play')
+  const filmProgress = document.querySelector('.film-progress')
+  const filmFullscreen = document.querySelector('.film-fullscreen')
+  const filmFrame = document.querySelector('.film-frame')
   const filmTime = document.querySelector('.film-time')
   const formatTime = seconds => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
   film?.addEventListener('loadedmetadata', () => { filmTime.textContent = formatTime(film.duration) })
   filmButton?.addEventListener('click', () => film.paused ? film.play() : film.pause())
-  film?.addEventListener('play', () => { filmButton.classList.add('playing'); filmButton.setAttribute('aria-label', 'Imagefilm pausieren') })
-  film?.addEventListener('pause', () => { filmButton.classList.remove('playing'); filmButton.setAttribute('aria-label', 'Imagefilm abspielen') })
+  filmControlButton?.addEventListener('click', () => film.paused ? film.play() : film.pause())
+  filmProgress?.addEventListener('input', () => { if (film.duration) film.currentTime = film.duration * (filmProgress.value / 100) })
+  film?.addEventListener('timeupdate', () => { if (film.duration) { filmProgress.value = (film.currentTime / film.duration) * 100; filmProgress.style.setProperty('--film-progress', `${filmProgress.value}%`); filmTime.textContent = `${formatTime(film.currentTime)} / ${formatTime(film.duration)}` } })
+  filmFullscreen?.addEventListener('click', async () => { if (!document.fullscreenElement) await (filmFrame.requestFullscreen?.() || film.webkitEnterFullscreen?.()); else await document.exitFullscreen?.() })
+  film?.addEventListener('play', () => { filmButton.classList.add('playing'); filmButton.setAttribute('aria-label', 'Imagefilm pausieren'); filmControlButton.classList.add('playing'); filmControlButton.setAttribute('aria-label', 'Imagefilm pausieren') })
+  film?.addEventListener('pause', () => { filmButton.classList.remove('playing'); filmButton.setAttribute('aria-label', 'Imagefilm abspielen'); filmControlButton.classList.remove('playing'); filmControlButton.setAttribute('aria-label', 'Imagefilm abspielen') })
   film?.addEventListener('ended', () => { film.currentTime = 0 })
   const progress = document.querySelector('.scroll-progress')
   window.addEventListener('scroll', () => { const max=document.documentElement.scrollHeight-innerHeight; progress.style.transform=`scaleX(${max ? scrollY/max : 0})` }, {passive:true})
