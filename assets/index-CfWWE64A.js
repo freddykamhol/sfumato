@@ -17,7 +17,6 @@
         <div class="hero-visual reveal">
           <img src="/studio-hero.png" alt="Tattoo Artist bei einer floralen Blackwork-Arbeit">
           <div class="image-index"><b>01</b><span></span><small>03</small></div>
-          <div class="availability"><i></i><span>Nächste Termine<br><b>Oktober 2026</b></span></div>
         </div>
         <div class="hero-stamp"><b>SFUMATO</b><span>CUSTOM TATTOOING<br>EINBECK · DE</span></div>
         <div class="scroll-note">SCROLL TO EXPLORE <span>↓</span></div>
