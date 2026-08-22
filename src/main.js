@@ -2,6 +2,7 @@ import './style.css'
 import './admin-sticky.css'
 import './uploads.css'
 import './calendar.css'
+import './admin-sections.css'
 import signatureUrl from './assets/Signatur2.png?inline'
 
 const portfolio = [
@@ -152,15 +153,21 @@ function settingsView(){return `<div class="admin-title"><div><span class="admin
   <section class="integration-card"><div class="integration-icon mail">✉</div><div><h3>SMTP E-Mail</h3><p>Rückfragen und Terminvorschläge direkt aus dem Adminpanel senden.</p></div><span class="connected">AKTIV</span><button data-smtp>SMTP konfigurieren</button></section>
   <section class="hours-card"><div class="settings-heading"><div><h3>Öffnungszeiten</h3><p>Basis für automatisch berechnete Terminvorschläge.</p></div><span>Europe/Berlin</span></div>${['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'].map((d,i)=>`<div class="hours-row"><label class="switch"><input type="checkbox" ${i!==0&&i!==5?'checked':''}><i></i></label><b>${d}</b><input type="time" value="10:00" ${i===0||i===5?'disabled':''}><span>bis</span><input type="time" value="18:00" ${i===0||i===5?'disabled':''}></div>`).join('')}<div class="hours-row"><label class="switch"><input type="checkbox"><i></i></label><b>Sonntag</b><span class="closed">Geschlossen</span></div></section>
   </div>`}
+function appointmentFormView(){const date=new Date();date.setMinutes(Math.ceil(date.getMinutes()/30)*30,0,0);const end=new Date(date.getTime()+3*3600000);const localValue=value=>new Date(value.getTime()-value.getTimezoneOffset()*60000).toISOString().slice(0,16);return `<div class="admin-title"><div><span class="admin-kicker">STUDIO-KALENDER</span><h2>Neuen Termin anlegen</h2><p>Eine neue Terminakte erstellen und direkt im Kalender einplanen.</p></div></div><form class="admin-appointment-form" data-appointment-form><div class="appointment-form-grid"><label>NAME<input required name="clientName" placeholder="Vor- und Nachname"></label><label>E-MAIL<input type="email" name="email" placeholder="name@email.de"></label><label>TELEFON<input name="phone" placeholder="+49 …"></label><label>STIL<input name="style" placeholder="z. B. Fineline"></label><label>KÖRPERSTELLE<input name="placement" placeholder="z. B. Unterarm"></label><label>BEGINN<input required type="datetime-local" name="start" value="${localValue(date)}"></label><label>ENDE<input required type="datetime-local" name="end" value="${localValue(end)}"></label><label class="full">NOTIZ<textarea name="notes" rows="6" placeholder="Vorbereitung, Motiv, Besonderheiten …"></textarea></label></div><p class="modal-form-error" role="alert"></p><button class="save-settings" type="submit">Termin speichern →</button></form>`}
+function appointmentFilesView(){return `<div class="admin-title"><div><span class="admin-kicker">ARCHIV</span><h2>Terminakten</h2><p>Alle geplanten und vergangenen Studio-Termine an einem Ort.</p></div><a class="save-settings" href="/admin/termin-neu/">+ Neuer Termin</a></div><div class="appointment-files-list">${appointments.length?appointments.map(item=>{const start=new Date(item.start);return `<button data-appointment="${item.id}"><time><b>${String(start.getDate()).padStart(2,'0')}</b><small>${new Intl.DateTimeFormat('de-DE',{month:'short',year:'numeric'}).format(start)}</small></time><span><b>${item.clientName}</b><small>${item.style||'Tattoo-Termin'} · ${item.placement||'Studio'}</small></span><span><b>${new Intl.DateTimeFormat('de-DE',{hour:'2-digit',minute:'2-digit'}).format(start)} Uhr</b><small>${Math.max(0,(new Date(item.end)-start)/3600000).toLocaleString('de-DE')} Stunden</small></span><i>Akte öffnen ↗</i></button>`}).join(''):'<div class="request-empty"><span>00</span><h3>Noch keine Terminakten.</h3><p>Neu angelegte Termine erscheinen automatisch hier.</p></div>'}</div>`}
+function customersView(){const records=[...demoRequests,...appointments].reduce((map,item)=>{const key=(item.email||item.phone||item.clientName||item.name||'').toLowerCase();if(!key)return map;const current=map.get(key)||{name:item.clientName||item.name,email:item.email,phone:item.phone,requests:0,appointments:0};if(item.id?.startsWith('APT-'))current.appointments++;else current.requests++;current.email=current.email||item.email;current.phone=current.phone||item.phone;map.set(key,current);return map},new Map());const customers=[...records.values()].sort((a,b)=>a.name.localeCompare(b.name,'de'));return `<div class="admin-title"><div><span class="admin-kicker">KARTEI</span><h2>Kunden</h2><p>Kontaktdaten und Projektverlauf aus Anfragen und Terminakten.</p></div><b class="customer-count">${customers.length}</b></div><div class="customer-list">${customers.length?customers.map(customer=>`<article><span class="customer-avatar">${customer.name.split(/\s+/).map(part=>part[0]).slice(0,2).join('').toUpperCase()}</span><div><b>${customer.name}</b><small>${customer.email||'Keine E-Mail'} · ${customer.phone||'Keine Telefonnummer'}</small></div><div><b>${customer.requests}</b><small>Anfragen</small></div><div><b>${customer.appointments}</b><small>Termine</small></div></article>`).join(''):'<div class="request-empty"><span>00</span><h3>Noch keine Kunden.</h3><p>Kunden werden automatisch aus Anfragen und Terminen übernommen.</p></div>'}</div>`}
 function currentAdminView() {
   const path = location.pathname.replace(/\/+$/, '')
   if (path.endsWith('/anfragen')) return 'requests'
   if (path.endsWith('/referenzen')) return 'portfolio'
   if (path.endsWith('/einstellungen')) return 'settings'
+  if (path.endsWith('/termin-neu')) return 'newAppointment'
+  if (path.endsWith('/terminakten')) return 'appointmentFiles'
+  if (path.endsWith('/kunden')) return 'customers'
   return 'dashboard'
 }
-function adminViewMarkup(view) { return view==='requests'?requestsView():view==='portfolio'?portfolioView():view==='settings'?settingsView():dashboardView() }
-function adminMarkup() { const welcome=adminWelcome(); const view=currentAdminView(); return `<div class="admin-shell"><aside class="admin-side"><a class="brand" href="/"><span>TATTOO</span><i>·</i><span>SFUMATO</span></a><p>STUDIO OS</p><nav><a class="${view==='dashboard'?'active':''}" data-view="dashboard" href="/admin/"><span>⌂</span>Dashboard</a><a class="${view==='requests'?'active':''}" data-view="requests" href="/admin/anfragen/"><span>01</span>Anfragen <b>${demoRequests.length}</b></a><a class="${view==='portfolio'?'active':''}" data-view="portfolio" href="/admin/referenzen/"><span>02</span>Referenzen</a><a class="${view==='settings'?'active':''}" data-view="settings" href="/admin/einstellungen/"><span>03</span>Einstellungen</a></nav><div class="admin-user"><div class="avatar">TS</div><span><b>Studio Sfumato</b><small>Administrator</small></span></div><a href="/" class="back">← Zur Website</a></aside><main class="admin-main"><header><div><p>${welcome.date}</p><h1>${welcome.greeting}</h1></div><div class="header-actions"><button aria-label="Benachrichtigungen">●</button><div class="avatar">TS</div></div></header><section id="admin-content">${adminViewMarkup(view)}</section></main><div class="admin-modal" aria-hidden="true"></div></div>` }
+function adminViewMarkup(view) { return view==='requests'?requestsView():view==='portfolio'?portfolioView():view==='settings'?settingsView():view==='newAppointment'?appointmentFormView():view==='appointmentFiles'?appointmentFilesView():view==='customers'?customersView():dashboardView() }
+function adminMarkup() { const welcome=adminWelcome(); const view=currentAdminView(); return `<div class="admin-shell"><aside class="admin-side"><a class="brand" href="/"><span>TATTOO</span><i>·</i><span>SFUMATO</span></a><p>STUDIO OS</p><nav><a class="${view==='dashboard'?'active':''}" data-view="dashboard" href="/admin/"><span>⌂</span>Dashboard</a><a class="${view==='newAppointment'?'active':''}" data-view="newAppointment" href="/admin/termin-neu/"><span>＋</span>Neuer Termin</a><a class="${view==='appointmentFiles'?'active':''}" data-view="appointmentFiles" href="/admin/terminakten/"><span>01</span>Terminakten</a><a class="${view==='customers'?'active':''}" data-view="customers" href="/admin/kunden/"><span>02</span>Kunden</a><a class="${view==='requests'?'active':''}" data-view="requests" href="/admin/anfragen/"><span>03</span>Anfragen <b>${demoRequests.length}</b></a><a class="${view==='portfolio'?'active':''}" data-view="portfolio" href="/admin/referenzen/"><span>04</span>Referenzen</a><a class="${view==='settings'?'active':''}" data-view="settings" href="/admin/einstellungen/"><span>05</span>Einstellungen</a></nav><div class="admin-user"><div class="avatar">TS</div><span><b>Studio Sfumato</b><small>Administrator</small></span></div><a href="/" class="back">← Zur Website</a></aside><main class="admin-main"><header><div><p>${welcome.date}</p><h1>${welcome.greeting}</h1></div><div class="header-actions"><button aria-label="Benachrichtigungen">●</button><div class="avatar">TS</div></div></header><section id="admin-content">${adminViewMarkup(view)}</section></main><div class="admin-modal" aria-hidden="true"></div></div>` }
 
 function initSite() {
   const menuButton = document.querySelector('.menu')
@@ -397,6 +404,7 @@ function initAdmin() {
     const activeView = document.querySelector('[data-view].active')?.dataset.view
     if (activeView === 'requests') content.innerHTML = requestsView()
     else if (activeView === 'dashboard') content.innerHTML = dashboardView()
+    else if (activeView === 'customers') content.innerHTML = customersView()
     openAdminDeepLink()
   }
   fetch('/api/requests', { headers: { Accept: 'application/json' } }).then(async response => {
@@ -411,6 +419,8 @@ function initAdmin() {
   }).then(entries => {
     appointments.splice(0, appointments.length, ...entries.sort((a,b)=>new Date(a.start)-new Date(b.start)))
     if (currentAdminView() === 'dashboard') content.innerHTML = dashboardView()
+    else if (currentAdminView() === 'appointmentFiles') content.innerHTML = appointmentFilesView()
+    else if (currentAdminView() === 'customers') content.innerHTML = customersView()
     openAdminDeepLink()
   }).catch(() => {
     if (currentAdminView() === 'dashboard') content.innerHTML = dashboardView()
@@ -441,6 +451,19 @@ function initAdmin() {
       appointments.push(result);appointments.sort((a,b)=>new Date(a.start)-new Date(b.start));closeModal();content.innerHTML=dashboardView()
     }catch(error){form.querySelector('.modal-form-error').textContent=error.message;submit.disabled=false;submit.textContent='Termin speichern →'}
   })
+  content.addEventListener('submit', async e => {
+    const form=e.target.closest('[data-appointment-form]')
+    if(!form)return
+    e.preventDefault()
+    const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Wird gespeichert …'
+    try{
+      const payload=Object.fromEntries(new FormData(form));payload.start=new Date(payload.start).toISOString();payload.end=new Date(payload.end).toISOString()
+      const response=await fetch('/api/appointments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+      const text=await response.text();const result=text?JSON.parse(text):null
+      if(!response.ok||!result?.id)throw new Error(result?.error||'Termin konnte nicht gespeichert werden.')
+      appointments.push(result);appointments.sort((a,b)=>new Date(a.start)-new Date(b.start));location.href=`/admin/terminakten/?termin=${encodeURIComponent(result.id)}`
+    }catch(error){form.querySelector('.modal-form-error').textContent=error.message;submit.disabled=false;submit.textContent='Termin speichern →'}
+  })
   if (currentAdminView() === 'portfolio') initUploads()
   content.addEventListener('click', e => {
     if(e.target.closest('[data-reset-filters]')){
@@ -457,8 +480,8 @@ function initAdmin() {
     if(e.target.closest('[data-calendar-prev]')){calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()-1,1);content.innerHTML=dashboardView();return}
     if(e.target.closest('[data-calendar-next]')){calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,1);content.innerHTML=dashboardView();return}
     const appointment=e.target.closest('[data-appointment]')
-    if(appointment){const url=new URL('/admin/',location.origin);url.searchParams.set('termin',appointment.dataset.appointment);if(location.href!==url.href)history.pushState(null,'',url);content.innerHTML=realAppointmentView(appointment.dataset.appointment);return}
-    if(e.target.closest('[data-back-dashboard]')){history.pushState(null,'','/admin/');content.innerHTML=dashboardView();return}
+    if(appointment){const url=new URL('/admin/terminakten/',location.origin);url.searchParams.set('termin',appointment.dataset.appointment);if(location.href!==url.href)history.pushState(null,'',url);content.innerHTML=realAppointmentView(appointment.dataset.appointment);return}
+    if(e.target.closest('[data-back-dashboard]')){history.pushState(null,'','/admin/terminakten/');content.innerHTML=appointmentFilesView();return}
     if(e.target.closest('[data-confirm-slot]')){
       e.target.closest('.response-banner').innerHTML=`<div><span class="positive">KUNDIN HAT ZUGESAGT</span><b>Do, 03. September · 12:30–16:30 Uhr</b><small>Der Termin ist reserviert und bereit zur Übernahme.</small></div><button class="save-settings" data-calendar-add>In Google Kalender eintragen →</button>`;return
     }
