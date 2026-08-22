@@ -156,15 +156,24 @@ function initSite() {
   const filmFullscreen = document.querySelector('.film-fullscreen')
   const filmFrame = document.querySelector('.film-frame')
   const filmTime = document.querySelector('.film-time')
+  let filmControlsTimer
+  const showFilmControls = () => {
+    filmFrame?.classList.add('controls-visible')
+    clearTimeout(filmControlsTimer)
+    if (!film?.paused) filmControlsTimer = setTimeout(() => filmFrame?.classList.remove('controls-visible'), 1800)
+  }
   const formatTime = seconds => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
   film?.addEventListener('loadedmetadata', () => { filmTime.textContent = formatTime(film.duration) })
   filmButton?.addEventListener('click', () => film.paused ? film.play() : film.pause())
   filmControlButton?.addEventListener('click', () => film.paused ? film.play() : film.pause())
+  filmFrame?.addEventListener('pointermove', showFilmControls)
+  filmFrame?.addEventListener('pointerdown', showFilmControls)
+  filmFrame?.addEventListener('pointerleave', () => { if (!film.paused) filmFrame.classList.remove('controls-visible') })
   filmProgress?.addEventListener('input', () => { if (film.duration) film.currentTime = film.duration * (filmProgress.value / 100) })
   film?.addEventListener('timeupdate', () => { if (film.duration) { filmProgress.value = (film.currentTime / film.duration) * 100; filmProgress.style.setProperty('--film-progress', `${filmProgress.value}%`); filmTime.textContent = `${formatTime(film.currentTime)} / ${formatTime(film.duration)}` } })
   filmFullscreen?.addEventListener('click', async () => { if (!document.fullscreenElement) await (filmFrame.requestFullscreen?.() || film.webkitEnterFullscreen?.()); else await document.exitFullscreen?.() })
-  film?.addEventListener('play', () => { filmButton.classList.add('playing'); filmButton.setAttribute('aria-label', 'Imagefilm pausieren'); filmControlButton.classList.add('playing'); filmControlButton.setAttribute('aria-label', 'Imagefilm pausieren') })
-  film?.addEventListener('pause', () => { filmButton.classList.remove('playing'); filmButton.setAttribute('aria-label', 'Imagefilm abspielen'); filmControlButton.classList.remove('playing'); filmControlButton.setAttribute('aria-label', 'Imagefilm abspielen') })
+  film?.addEventListener('play', () => { filmFrame.classList.add('is-playing'); filmButton.classList.add('playing'); filmButton.setAttribute('aria-label', 'Imagefilm pausieren'); filmControlButton.classList.add('playing'); filmControlButton.setAttribute('aria-label', 'Imagefilm pausieren'); showFilmControls() })
+  film?.addEventListener('pause', () => { clearTimeout(filmControlsTimer); filmFrame.classList.remove('is-playing'); filmFrame.classList.add('controls-visible'); filmButton.classList.remove('playing'); filmButton.setAttribute('aria-label', 'Imagefilm abspielen'); filmControlButton.classList.remove('playing'); filmControlButton.setAttribute('aria-label', 'Imagefilm abspielen') })
   film?.addEventListener('ended', () => { film.currentTime = 0 })
   const progress = document.querySelector('.scroll-progress')
   window.addEventListener('scroll', () => { const max=document.documentElement.scrollHeight-innerHeight; progress.style.transform=`scaleX(${max ? scrollY/max : 0})` }, {passive:true})
