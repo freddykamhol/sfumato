@@ -43,15 +43,15 @@ function siteMarkup() {
         <div class="section-head"><div><p class="section-no">[ 02 — AUSGEWÄHLTE ARBEITEN ]</p><h2>Selected <em>work.</em></h2></div><p>Fine Line, Blackwork & organische Kompositionen — präzise, kontrastreich und für deinen Körper entworfen.</p></div>
         <div class="gallery">${portfolio.map((item, i) => `<article class="work-card reveal" style="--pos:${item.position}"><div class="work-image"><img src="/studio-hero.png" alt="${item.title}"><span>0${i+1}</span></div><div><h3>${item.title}</h3><p>${item.type}</p></div></article>`).join('')}</div>
       </section>
-      <section id="about" class="about section-pad"><div class="about-image"><img src="/studio-hero.png" alt="Detail aus dem Tattoo-Studio Sfumato"></div><div class="about-copy"><p class="section-no">[ 03 — TATTOO SFUMATO ]</p><h2>Handwerk trifft<br><em>Haltung.</em></h2><p>Bei Tattoo Sfumato treffen professionelles Handwerk und eine familiäre Atmosphäre aufeinander. Wir arbeiten konzentriert und mit höchstem Anspruch — dabei bleibt der Umgang persönlich, locker und ganz ohne steife Studio-Vibes.</p><blockquote>„Ein gutes Tattoo passt nicht nur zum Körper. Es fühlt sich an, als wäre es schon immer da gewesen.“</blockquote><div class="signature">Sfumato</div></div></section>
+      <section id="about" class="about section-pad"><div class="about-image"><img src="/studio-hero.png" alt="Detail aus dem Tattoo-Studio Sfumato"></div><div class="about-copy"><p class="section-no">[ 03 — TATTOO SFUMATO ]</p><h2>Handwerk trifft<br><em>Haltung.</em></h2><p>Bei Tattoo Sfumato treffen professionelles Handwerk und eine familiäre Atmosphäre aufeinander. Wir arbeiten konzentriert und mit höchstem Anspruch — dabei bleibt der Umgang persönlich, locker und ganz ohne steife Studio-Vibes.</p><blockquote>„Sfumato bedeutet so viel wie ‚in Rauch aufgehen‘. Das ist eine alte Maltechnik, die mein Vater damals in seiner Kunstarbeit benutzt hat.“</blockquote><div class="signature"><img src="/Signatur.png" alt="Unterschrift von Leon Zwezich"><span>Leon Zwezich</span></div></div></section>
       <section id="imagefilm" class="film-section section-pad">
         <div class="film-heading"><div><p class="section-no">[ 04 — IMAGEFILM ]</p><h2>Inside<br><em>Sfumato.</em></h2></div><p>Ein Blick hinter die Kulissen — Atmosphäre, Handwerk und die Menschen, die Tattoo Sfumato prägen.</p></div>
         <div class="film-frame reveal">
-          <img src="/studio-hero.png" alt="Vorschaubild für den kommenden Imagefilm von Tattoo Sfumato">
+          <video src="/Imagevideo.MP4" poster="/studio-hero.png" preload="metadata" playsinline aria-label="Imagefilm von Tattoo Sfumato"></video>
           <div class="film-shade"></div>
-          <div class="film-status"><i></i><span>IMAGEFILM<br><b>COMING SOON</b></span></div>
-          <button class="film-play" type="button" aria-label="Hinweis zum Imagefilm"><span></span></button>
-          <div class="film-meta"><span>SFUMATO / EINBECK</span><span>00:00</span></div>
+          <div class="film-status"><i></i><span>IMAGEFILM<br><b>SFUMATO / EINBECK</b></span></div>
+          <button class="film-play" type="button" aria-label="Imagefilm abspielen"><span></span></button>
+          <div class="film-meta"><span>SFUMATO / EINBECK</span><span class="film-time">00:00</span></div>
         </div>
       </section>
       <section id="ablauf" class="process section-pad"><div class="section-head"><div><p class="section-no">[ 05 — DER ABLAUF ]</p><h2>Von der Idee<br><em>unter die Haut.</em></h2></div></div><div class="steps"><article><span>01</span><h3>Deine Anfrage</h3><p>Erzähl uns von deinem Motiv, der Stelle und deiner Wunschgröße. Referenzbilder helfen, müssen aber nicht perfekt sein.</p></article><article><span>02</span><h3>Konzept & Termin</h3><p>Wir klären Stil, Umfang und Budget. Danach erhältst du einen passenden Termin und alle Infos zur Vorbereitung.</p></article><article><span>03</span><h3>Dein Tattoo</h3><p>Am Termin finalisieren wir den Entwurf gemeinsam. Erst wenn alles passt, geht es los — ohne Zeitdruck.</p></article></div></section>
@@ -114,12 +114,15 @@ function initSite() {
     e.preventDefault(); const f = new FormData(e.currentTarget); demoRequests.unshift({id:`LT-${String(29+demoRequests.length).padStart(3,'0')}`,name:f.get('name'),motif:f.get('idea').slice(0,28),date:'Heute',status:'Neu'}); e.currentTarget.reset(); document.querySelector('.form-message').textContent='Danke! Deine Anfrage ist angekommen. Wir melden uns persönlich bei dir.'; const toast=document.querySelector('.toast'); toast.textContent='Anfrage erfolgreich gesendet'; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),3500)
   })
   const observer = new IntersectionObserver(entries => entries.forEach(x => x.isIntersecting && x.target.classList.add('visible')), {threshold:.12}); document.querySelectorAll('.reveal').forEach(el=>observer.observe(el))
-  document.querySelector('.film-play')?.addEventListener('click', () => {
-    const toast = document.querySelector('.toast')
-    toast.textContent = 'Der Sfumato Imagefilm folgt in Kürze.'
-    toast.classList.add('show')
-    setTimeout(() => toast.classList.remove('show'), 3000)
-  })
+  const film = document.querySelector('.film-frame video')
+  const filmButton = document.querySelector('.film-play')
+  const filmTime = document.querySelector('.film-time')
+  const formatTime = seconds => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`
+  film?.addEventListener('loadedmetadata', () => { filmTime.textContent = formatTime(film.duration) })
+  filmButton?.addEventListener('click', () => film.paused ? film.play() : film.pause())
+  film?.addEventListener('play', () => { filmButton.classList.add('playing'); filmButton.setAttribute('aria-label', 'Imagefilm pausieren') })
+  film?.addEventListener('pause', () => { filmButton.classList.remove('playing'); filmButton.setAttribute('aria-label', 'Imagefilm abspielen') })
+  film?.addEventListener('ended', () => { film.currentTime = 0 })
   const progress = document.querySelector('.scroll-progress')
   window.addEventListener('scroll', () => { const max=document.documentElement.scrollHeight-innerHeight; progress.style.transform=`scaleX(${max ? scrollY/max : 0})` }, {passive:true})
   const dot=document.querySelector('.cursor-dot')
