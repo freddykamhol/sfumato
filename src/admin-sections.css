@@ -144,11 +144,13 @@
 }
 
 .customer-row:last-of-type { border-bottom: 0; }
-.customer-row-main { display: grid; grid-template-columns: 44px minmax(0, 1fr) 90px 90px; gap: 16px; align-items: center; min-width: 0; padding: 13px 20px; border: 0; background: transparent; text-align: left; cursor: pointer; transition: background .2s; }
+.customer-row-main { display: grid; grid-template-columns: 44px minmax(0, 1fr) 78px 78px 78px; gap: 16px; align-items: center; min-width: 0; padding: 13px 20px; border: 0; background: transparent; text-align: left; cursor: pointer; transition: background .2s; }
 .customer-row-main:hover { background: #faf9f6; }
 .customer-row-main div b, .customer-row-main div small { display: block; }
 .customer-row-main div b { font-size: 12px; }
 .customer-row-main div small { overflow: hidden; margin-top: 5px; color: #918d85; font-size: 10px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.customer-row-notes b { display: flex !important; align-items: center; gap: 6px; }
+.customer-row-notes i { display: inline-grid; width: 17px; height: 17px; place-items: center; border-radius: 50%; background: #c9362d; color: #fff; font-size: 11px; font-style: normal; font-weight: 800; line-height: 1; box-shadow: 0 3px 9px rgba(201, 54, 45, .22); }
 .customer-row-actions { display: grid; grid-template-columns: 1fr 1fr; border-left: 1px solid #e7e4de; }
 .customer-quick-action { position: relative; isolation: isolate; display: grid; overflow: hidden; place-items: center; padding: 0; border: 0; background: transparent; color: #6f6c66; cursor: pointer; transition: color .35s ease; }
 .customer-quick-action + .customer-quick-action { border-left: 1px solid #e7e4de; }
@@ -337,7 +339,7 @@
 
   .customer-row { grid-template-columns: minmax(0, 1fr) 92px; }
   .customer-row-main { grid-template-columns: 42px minmax(0, 1fr) 48px; gap: 12px; padding-inline: 13px; }
-  .customer-row-main > div:last-child { display: none; }
+  .customer-row-appointments { display: none; }
 
   .customer-filter > div { padding-inline: 13px; }
   .customer-filter [data-customer-filter-count] { display: none; }
