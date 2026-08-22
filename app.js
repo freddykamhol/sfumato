@@ -14,6 +14,7 @@ const dataDirectory = join(root, 'data')
 const requestsFile = join(dataDirectory, 'requests.json')
 const appointmentsFile = join(dataDirectory, 'appointments.json')
 const customerNotesFile = join(dataDirectory, 'customer-notes.json')
+const portfolioFile = join(dataDirectory, 'portfolio.json')
 const uploadsDirectory = join(dataDirectory, 'uploads')
 
 const readRequests = async () => {
@@ -40,6 +41,8 @@ const saveCustomerNotes = async notes => {
   await mkdir(dataDirectory, { recursive: true })
   await writeFile(customerNotesFile, JSON.stringify(notes, null, 2), 'utf8')
 }
+const readPortfolio = async () => { try { return JSON.parse(await readFile(portfolioFile,'utf8')) } catch(error){if(error.code==='ENOENT')return[];throw error} }
+const savePortfolio = async entries => { await mkdir(dataDirectory,{recursive:true});await writeFile(portfolioFile,JSON.stringify(entries,null,2),'utf8') }
 const cleanText = (value, max = 1000) => String(value || '').replace(/[<>]/g, '').trim().slice(0, max)
 const sendJson = (response, status, payload) => {
   response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
@@ -120,6 +123,12 @@ createServer((request, response) => {
     readRequests().then(requests => sendJson(response, 200, requests)).catch(() => sendJson(response, 500, { error: 'Anfragen konnten nicht geladen werden.' }))
     return
   }
+
+  if(pathname==='/api/portfolio'&&request.method==='GET'){readPortfolio().then(entries=>sendJson(response,200,entries)).catch(()=>sendJson(response,500,{error:'Referenzen konnten nicht geladen werden.'}));return}
+  if(pathname==='/api/portfolio'&&request.method==='POST'){let body='';request.on('data',chunk=>{if(body.length<20000000)body+=chunk});request.on('end',async()=>{try{const input=JSON.parse(body),match=String(input.image||'').match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);if(!match)return sendJson(response,400,{error:'Gültiges Bild fehlt.'});const id=`REF-${Date.now().toString(36).toUpperCase()}`,directory=join(uploadsDirectory,'portfolio');await mkdir(directory,{recursive:true});const extension=match[1]==='image/jpeg'?'.jpg':match[1]==='image/png'?'.png':'.webp',filename=`${id}${extension}`;await writeFile(join(directory,filename),Buffer.from(match[2],'base64'));const entries=await readPortfolio(),entry={id,title:cleanText(input.title,120)||'Neue Arbeit',style:cleanText(input.style,80)||'Fineline',placement:cleanText(input.placement,120),description:cleanText(input.description,1000),published:Boolean(input.published),featured:Boolean(input.featured),position:cleanText(input.position,30)||'50% 50%',image:`/api/uploads/portfolio/${filename}`,order:entries.length,createdAt:new Date().toISOString()};entries.push(entry);await savePortfolio(entries);sendJson(response,201,entry)}catch{sendJson(response,400,{error:'Referenz konnte nicht gespeichert werden.'})}});return}
+  const portfolioMatch=pathname.match(/^\/api\/portfolio\/([^/]+)$/)
+  if(portfolioMatch&&request.method==='PATCH'){let body='';request.on('data',chunk=>{if(body.length<1000000)body+=chunk});request.on('end',async()=>{try{const input=JSON.parse(body),entries=await readPortfolio(),entry=entries.find(item=>item.id===decodeURIComponent(portfolioMatch[1]));if(!entry)return sendJson(response,404,{error:'Referenz nicht gefunden.'});for(const field of ['title','style','placement','description','position'])if(input[field]!==undefined)entry[field]=cleanText(input[field],field==='description'?1000:120);for(const field of ['published','featured'])if(input[field]!==undefined)entry[field]=Boolean(input[field]);if(input.order!==undefined)entry.order=Number(input.order)||0;await savePortfolio(entries);sendJson(response,200,entry)}catch{sendJson(response,400,{error:'Referenz konnte nicht aktualisiert werden.'})}});return}
+  if(portfolioMatch&&request.method==='DELETE'){readPortfolio().then(async entries=>{const index=entries.findIndex(item=>item.id===decodeURIComponent(portfolioMatch[1]));if(index<0)return sendJson(response,404,{error:'Referenz nicht gefunden.'});entries.splice(index,1);await savePortfolio(entries);sendJson(response,200,{deleted:true})}).catch(()=>sendJson(response,500,{error:'Referenz konnte nicht gelöscht werden.'}));return}
 
   if (pathname === '/api/appointments' && request.method === 'GET') {
     readAppointments().then(appointments => sendJson(response, 200, appointments)).catch(() => sendJson(response, 500, { error: 'Termine konnten nicht geladen werden.' }))

@@ -14,6 +14,7 @@ dist-ssr
 data/requests.json
 data/appointments.json
 data/customer-notes.json
+data/portfolio.json
 data/uploads/
 
 # Editor directories and files
