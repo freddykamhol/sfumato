@@ -12,6 +12,7 @@ const cookieName = 'sfumato_site_auth'
 const authToken = createHmac('sha256', sitePassword).update('sfumato-site-access').digest('hex')
 const dataDirectory = join(root, 'data')
 const requestsFile = join(dataDirectory, 'requests.json')
+const uploadsDirectory = join(dataDirectory, 'uploads')
 
 const readRequests = async () => {
   try { return JSON.parse(await readFile(requestsFile, 'utf8')) }
@@ -103,19 +104,33 @@ createServer((request, response) => {
     let tooLarge = false
     request.on('data', chunk => {
       if (!tooLarge) body += chunk
-      if (body.length > 100000) tooLarge = true
+      if (body.length > 75000000) tooLarge = true
     })
     request.on('end', async () => {
       if (tooLarge) return sendJson(response, 413, { error: 'Anfrage ist zu groß.' })
       try {
         const input = JSON.parse(body)
+        const requestId = `LT-${Date.now().toString().slice(-7)}`
+        const references = []
+        const incomingReferences = Array.isArray(input.references) ? input.references.slice(0, 5) : []
+        if (incomingReferences.length) await mkdir(join(uploadsDirectory, requestId), { recursive: true })
+        for (const [index, reference] of incomingReferences.entries()) {
+          const match = String(reference.data || '').match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/)
+          if (!match) continue
+          const buffer = Buffer.from(match[2], 'base64')
+          if (buffer.length > 10000000) continue
+          const extension = match[1] === 'image/jpeg' ? '.jpg' : match[1] === 'image/png' ? '.png' : '.webp'
+          const filename = `${String(index + 1).padStart(2, '0')}${extension}`
+          await writeFile(join(uploadsDirectory, requestId, filename), buffer)
+          references.push({ name: cleanText(reference.name, 180) || filename, url: `/api/uploads/${requestId}/${filename}`, type: match[1] })
+        }
         const entry = {
-          id: `LT-${Date.now().toString().slice(-7)}`,
+          id: requestId,
           name: cleanText(input.name, 120), email: cleanText(input.email, 180), phone: cleanText(input.phone, 60),
           style: cleanText(input.style, 80) || 'Nicht angegeben', placement: cleanText(input.placement, 160),
           size: cleanText(input.size, 80), idea: cleanText(input.idea, 4000),
           consultation: Boolean(input.consultation), consultationType: cleanText(input.consultationType, 30),
-          date: new Date().toISOString(), status: 'Neu', source: 'form',
+          references, date: new Date().toISOString(), status: 'Neu', source: 'form',
         }
         if (!entry.name || !entry.email || !entry.placement || !entry.size || !entry.idea) return sendJson(response, 400, { error: 'Bitte alle Pflichtfelder ausfüllen.' })
         const requests = await readRequests()
@@ -124,6 +139,16 @@ createServer((request, response) => {
         sendJson(response, 201, entry)
       } catch { sendJson(response, 400, { error: 'Anfrage konnte nicht verarbeitet werden.' }) }
     })
+    return
+  }
+
+  if (pathname.startsWith('/api/uploads/') && request.method === 'GET') {
+    const uploadPath = normalize(pathname.slice('/api/uploads/'.length)).replace(/^([/\\])+/, '')
+    const filePath = join(uploadsDirectory, uploadPath)
+    if (relative(uploadsDirectory, filePath).startsWith('..') || !existsSync(filePath) || statSync(filePath).isDirectory()) return sendJson(response, 404, { error: 'Bild nicht gefunden.' })
+    const extension = extname(filePath).toLowerCase()
+    response.writeHead(200, { 'Content-Type': mimeTypes[extension] || 'application/octet-stream', 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' })
+    createReadStream(filePath).pipe(response)
     return
   }
 

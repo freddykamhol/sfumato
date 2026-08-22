@@ -1,0 +1,114 @@
+.booking-form .upload {
+  position: relative;
+  min-height: 92px;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+}
+
+.booking-form .upload.dragging {
+  border-color: var(--red) !important;
+  background: rgba(158, 44, 36, 0.07);
+  transform: translateY(-2px);
+}
+
+.booking-form .upload.has-files {
+  border-color: #777169 !important;
+}
+
+.upload-previews {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 9px;
+  margin: -20px 0 34px;
+}
+
+.upload-previews:empty {
+  display: none;
+}
+
+.upload-previews article {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+}
+
+.upload-previews img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+  background: #ddd8d0;
+}
+
+.upload-previews button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(10, 10, 10, 0.8);
+  color: #fff;
+  cursor: pointer;
+}
+
+.upload-previews small {
+  display: block;
+  overflow: hidden;
+  margin-top: 6px;
+  color: #777169;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.request-references {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.request-references a,
+.missing-reference {
+  min-width: 0;
+  border: 1px solid #e0ddd6;
+  background: #f8f7f3;
+}
+
+.request-references img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.request-references small,
+.missing-reference small {
+  display: block;
+  overflow: hidden;
+  padding: 8px;
+  color: #777169;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.missing-reference > span {
+  display: grid;
+  aspect-ratio: 1;
+  place-items: center;
+  color: #aaa59d;
+  font-size: 9px;
+}
+
+@media (max-width: 600px) {
+  .upload-previews {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .request-references {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

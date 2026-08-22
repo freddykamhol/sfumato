@@ -1,5 +1,6 @@
 import './style.css'
 import './admin-sticky.css'
+import './uploads.css'
 import signatureUrl from './assets/Signatur2.png?inline'
 
 const portfolio = [
@@ -13,7 +14,14 @@ const readLocalRequests = () => {
   try { return JSON.parse(localStorage.getItem(LOCAL_REQUESTS_KEY) || '[]') }
   catch { return [] }
 }
-const saveLocalRequest = request => localStorage.setItem(LOCAL_REQUESTS_KEY, JSON.stringify([request, ...readLocalRequests()].slice(0, 250)))
+const saveLocalRequest = request => {
+  const requests = [request, ...readLocalRequests()].slice(0, 250)
+  try { localStorage.setItem(LOCAL_REQUESTS_KEY, JSON.stringify(requests)) }
+  catch {
+    const compact = requests.map(item => ({ ...item, references: (item.references || []).map(reference => ({ name: reference.name, type: reference.type })) }))
+    localStorage.setItem(LOCAL_REQUESTS_KEY, JSON.stringify(compact))
+  }
+}
 const arrow = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
 const instagram = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>'
 const adminWelcome = () => {
@@ -68,7 +76,7 @@ function siteMarkup() {
       <section id="ablauf" class="process section-pad"><div class="section-head"><div><p class="section-no">[ 05 — DER ABLAUF ]</p><h2>Von der Idee<br><em>unter die Haut.</em></h2></div></div><div class="steps"><article><span>01</span><h3>Deine Anfrage</h3><p>Erzähl uns von deinem Motiv, der Stelle und deiner Wunschgröße. Referenzbilder helfen, müssen aber nicht perfekt sein.</p></article><article><span>02</span><h3>Konzept & Termin</h3><p>Wir klären Stil, Umfang und Budget. Danach erhältst du einen passenden Termin und alle Infos zur Vorbereitung.</p></article><article><span>03</span><h3>Dein Tattoo</h3><p>Am Termin finalisieren wir den Entwurf gemeinsam. Erst wenn alles passt, geht es los — ohne Zeitdruck.</p></article></div></section>
       <section id="termin" class="booking section-pad">
         <div class="booking-intro"><p class="section-no">[ 06 — BOOKING ]</p><h2>Let’s create<br><em>something real.</em></h2><p>Je genauer deine Anfrage, desto besser können wir dein Projekt einschätzen. Wir melden uns in der Regel innerhalb von 3–5 Werktagen.</p><div class="contact-meta"><span>STUDIO</span><p>Tattoo Sfumato<br><a href="https://www.google.com/maps/search/?api=1&query=Altendorfer+Tor+7%2C+37574+Einbeck" target="_blank" rel="noopener noreferrer">Altendorfer Tor 7<br>37574 Einbeck ↗</a></p><span>TELEFON</span><p><a href="tel:+4915734408549">01573 4408549</a></p></div></div>
-        <form id="booking-form" class="booking-form"><label>DEIN NAME<input required name="name" placeholder="Vor- und Nachname"></label><div class="form-row"><label>E-MAIL<input required type="email" name="email" placeholder="name@email.de"></label><label>TELEFON <small>OPTIONAL</small><input name="phone" placeholder="+49 ..."></label></div><div class="form-row"><div class="custom-select-field"><span class="form-label">STIL</span><div class="custom-select"><input type="hidden" name="style"><button class="custom-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">Bitte auswählen<span></span></button><div class="custom-select-options" role="listbox" hidden><button type="button" role="option" data-value="Realistic">Realistic</button><button type="button" role="option" data-value="Microrealism">Microrealism</button><button type="button" role="option" data-value="Fineline">Fineline</button><button type="button" role="option" data-value="Andere Richtung">Andere Richtung</button></div></div></div><label>KÖRPERSTELLE<input required name="placement" placeholder="z. B. Unterarm innen"></label></div><div class="form-row"><label>UNGEFÄHRE GRÖSSE <small>IN CM</small><input required name="size" inputmode="decimal" placeholder="z. B. 15 × 10 cm"></label><label class="consultation-toggle"><input type="checkbox" name="consultation" id="consultation" value="yes"><span class="form-check"></span><span class="consultation-label"><b>BERATUNG VORAB</b><small>Bitte erst ein Beratungsgespräch</small></span></label></div><fieldset class="consultation-choice" hidden><legend>WIE DÜRFEN WIR DICH BERATEN?</legend><div class="consultation-options"><label><input type="radio" name="consultationType" value="studio"><span></span><b>Persönlich im Studio</b></label><label><input type="radio" name="consultationType" value="phone"><span></span><b>Telefonisch</b></label></div></fieldset><label>ERZÄHL UNS VON DEINER IDEE<textarea required name="idea" rows="4" placeholder="Motiv, Bedeutung, Wünsche …"></textarea></label><label class="upload"><input type="file" name="reference" accept="image/*" multiple><span class="plus">+</span><span><b>Referenzen hinzufügen</b><small>JPG, PNG · max. 10 MB</small></span></label><label class="consent"><input required type="checkbox"><span></span><small>Ich stimme der Verarbeitung meiner Angaben zur Bearbeitung der Anfrage zu.</small></label><button class="button primary submit" type="submit">Anfrage senden ${arrow}</button><p class="form-message" role="status"></p></form>
+        <form id="booking-form" class="booking-form"><label>DEIN NAME<input required name="name" placeholder="Vor- und Nachname"></label><div class="form-row"><label>E-MAIL<input required type="email" name="email" placeholder="name@email.de"></label><label>TELEFON <small>OPTIONAL</small><input name="phone" placeholder="+49 ..."></label></div><div class="form-row"><div class="custom-select-field"><span class="form-label">STIL</span><div class="custom-select"><input type="hidden" name="style"><button class="custom-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">Bitte auswählen<span></span></button><div class="custom-select-options" role="listbox" hidden><button type="button" role="option" data-value="Realistic">Realistic</button><button type="button" role="option" data-value="Microrealism">Microrealism</button><button type="button" role="option" data-value="Fineline">Fineline</button><button type="button" role="option" data-value="Andere Richtung">Andere Richtung</button></div></div></div><label>KÖRPERSTELLE<input required name="placement" placeholder="z. B. Unterarm innen"></label></div><div class="form-row"><label>UNGEFÄHRE GRÖSSE <small>IN CM</small><input required name="size" inputmode="decimal" placeholder="z. B. 15 × 10 cm"></label><label class="consultation-toggle"><input type="checkbox" name="consultation" id="consultation" value="yes"><span class="form-check"></span><span class="consultation-label"><b>BERATUNG VORAB</b><small>Bitte erst ein Beratungsgespräch</small></span></label></div><fieldset class="consultation-choice" hidden><legend>WIE DÜRFEN WIR DICH BERATEN?</legend><div class="consultation-options"><label><input type="radio" name="consultationType" value="studio"><span></span><b>Persönlich im Studio</b></label><label><input type="radio" name="consultationType" value="phone"><span></span><b>Telefonisch</b></label></div></fieldset><label>ERZÄHL UNS VON DEINER IDEE<textarea required name="idea" rows="4" placeholder="Motiv, Bedeutung, Wünsche …"></textarea></label><label class="upload" id="reference-dropzone"><input id="reference-input" type="file" name="reference" accept="image/jpeg,image/png,image/webp" multiple><span class="plus">+</span><span><b>Referenzen hinzufügen</b><small>Auswählen oder hierher ziehen · max. 5 Bilder · je 10 MB</small></span></label><div class="upload-previews" aria-live="polite"></div><label class="consent"><input required type="checkbox"><span></span><small>Ich stimme der Verarbeitung meiner Angaben zur Bearbeitung der Anfrage zu.</small></label><button class="button primary submit" type="submit">Anfrage senden ${arrow}</button><p class="form-message" role="status"></p></form>
       </section>
     </main>
     <footer><div class="footer-brand" data-protected-signature><img src="${signatureUrl}" alt="Signatur von Leon Zwezich" draggable="false"></div><div><a href="#arbeiten">Arbeiten</a><a href="#about">Studio</a><a href="#termin">Booking</a><a href="/admin/">Admin</a></div><div class="social"><a href="https://www.instagram.com/tattoo_sfumato/?hl=de" target="_blank" rel="noopener noreferrer" aria-label="Tattoo Sfumato auf Instagram">${instagram}<span>@tattoo_sfumato</span></a></div><p>© 2026 Tattoo Sfumato · Einbeck · Impressum · Datenschutz</p></footer><div class="toast" role="status"></div>`
@@ -181,6 +189,34 @@ function initSite() {
     consultationChoice.hidden = !requested
     consultationTypes.forEach((option, index) => { option.required = requested && index === 0; if (!requested) option.checked = false })
   })
+  const referenceInput = document.querySelector('#reference-input')
+  const referenceDropzone = document.querySelector('#reference-dropzone')
+  const referencePreviews = document.querySelector('.upload-previews')
+  let referenceFiles = []
+  let previewUrls = []
+  const renderReferencePreviews = () => {
+    previewUrls.forEach(URL.revokeObjectURL)
+    previewUrls = referenceFiles.map(file => URL.createObjectURL(file))
+    referencePreviews.innerHTML = referenceFiles.map((file, index) => `<article><img src="${previewUrls[index]}" alt="Vorschau ${index + 1}"><button type="button" data-remove-reference="${index}" aria-label="${file.name} entfernen">×</button><small>${file.name}</small></article>`).join('')
+    referenceDropzone.classList.toggle('has-files', referenceFiles.length > 0)
+  }
+  const addReferenceFiles = files => {
+    const valid = [...files].filter(file => ['image/jpeg','image/png','image/webp'].includes(file.type) && file.size <= 10000000)
+    referenceFiles = [...referenceFiles, ...valid].filter((file, index, all) => all.findIndex(item => item.name === file.name && item.size === file.size) === index).slice(0, 5)
+    renderReferencePreviews()
+    if (valid.length !== files.length) document.querySelector('.form-message').textContent = 'Bitte nur JPG, PNG oder WebP mit maximal 10 MB pro Bild verwenden.'
+  }
+  referenceInput?.addEventListener('change', event => addReferenceFiles(event.target.files))
+  referenceDropzone?.addEventListener('dragover', event => { event.preventDefault(); referenceDropzone.classList.add('dragging') })
+  referenceDropzone?.addEventListener('dragleave', () => referenceDropzone.classList.remove('dragging'))
+  referenceDropzone?.addEventListener('drop', event => { event.preventDefault(); referenceDropzone.classList.remove('dragging'); addReferenceFiles(event.dataTransfer.files) })
+  referencePreviews?.addEventListener('click', event => {
+    const remove = event.target.closest('[data-remove-reference]')
+    if (!remove) return
+    referenceFiles.splice(Number(remove.dataset.removeReference), 1)
+    renderReferencePreviews()
+  })
+  const fileAsDataUrl = file => new Promise((resolve, reject) => { const reader=new FileReader();reader.onload=()=>resolve({name:file.name,type:file.type,data:reader.result});reader.onerror=reject;reader.readAsDataURL(file) })
   document.querySelector('#booking-form')?.addEventListener('submit', async e => {
     e.preventDefault()
     const form = e.currentTarget
@@ -193,6 +229,7 @@ function initSite() {
     submit.textContent = 'Anfrage wird gesendet …'
     message.textContent = ''
     try {
+      payload.references = await Promise.all(referenceFiles.map(fileAsDataUrl))
       const response = await fetch('/api/requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const responseText = await response.text()
       let result
@@ -202,7 +239,7 @@ function initSite() {
         saveLocalRequest(result)
       }
       demoRequests.unshift(result)
-      form.reset(); selectTrigger.firstChild.textContent='Bitte auswählen'; selectOptions.querySelectorAll('[role="option"]').forEach(item=>item.removeAttribute('aria-selected')); consultationChoice.hidden=true; consultationTypes.forEach(option=>option.required=false)
+      form.reset(); referenceFiles=[]; renderReferencePreviews(); selectTrigger.firstChild.textContent='Bitte auswählen'; selectOptions.querySelectorAll('[role="option"]').forEach(item=>item.removeAttribute('aria-selected')); consultationChoice.hidden=true; consultationTypes.forEach(option=>option.required=false)
       message.textContent='Danke! Deine Anfrage ist angekommen. Wir melden uns persönlich bei dir.'
       const toast=document.querySelector('.toast'); toast.textContent='Anfrage erfolgreich gesendet'; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),3500)
     } catch (error) {
@@ -372,7 +409,7 @@ function initAdmin() {
       const url=new URL('/admin/anfragen/',location.origin);url.searchParams.set('anfrage',r.id);if(location.href!==url.href)history.pushState(null,'',url)
       content.innerHTML=`<div class="detail-top"><button class="detail-back">← Anfragen</button><div><button class="secondary-action" data-question>Rückfrage senden</button><button class="save-settings" data-proposals>Terminvorschläge erstellen</button></div></div>
       <div class="request-hero"><div><span class="admin-kicker">${r.id} · EINGANG ${r.source === 'form' ? new Date(r.date).toLocaleDateString('de-DE') : r.date}</span><h2>${r.name}</h2><p>${r.phone || 'Keine Telefonnummer'} · ${r.email || 'Keine E-Mail-Adresse'}</p></div><i class="status neu">${r.status}</i></div>
-      <div class="request-detail-grid"><section class="project-card"><span>PROJEKTDETAILS</span><dl><div><dt>Stil</dt><dd>${r.style || 'Nicht angegeben'}</dd></div><div><dt>Körperstelle</dt><dd>${r.placement || 'Nicht angegeben'}</dd></div><div><dt>Größe</dt><dd>${r.size || 'Nicht angegeben'}</dd></div><div><dt>Beratung</dt><dd>${r.consultation ? (r.consultationType === 'phone' ? 'Telefonisch' : 'Persönlich im Studio') : 'Nicht gewünscht'}</dd></div></dl><span>BESCHREIBUNG</span><p>${r.idea || r.motif || 'Keine Beschreibung vorhanden.'}</p></section>
+      <div class="request-detail-grid"><section class="project-card"><span>PROJEKTDETAILS</span><dl><div><dt>Stil</dt><dd>${r.style || 'Nicht angegeben'}</dd></div><div><dt>Körperstelle</dt><dd>${r.placement || 'Nicht angegeben'}</dd></div><div><dt>Größe</dt><dd>${r.size || 'Nicht angegeben'}</dd></div><div><dt>Beratung</dt><dd>${r.consultation ? (r.consultationType === 'phone' ? 'Telefonisch' : 'Persönlich im Studio') : 'Nicht gewünscht'}</dd></div></dl><span>BESCHREIBUNG</span><p>${r.idea || r.motif || 'Keine Beschreibung vorhanden.'}</p>${r.references?.length ? `<span>REFERENZBILDER</span><div class="request-references">${r.references.map((reference,index)=>reference.url || reference.data ? `<a href="${reference.url || reference.data}" target="_blank" rel="noopener"><img src="${reference.url || reference.data}" alt="Referenzbild ${index + 1}"><small>${reference.name || `Referenz ${index + 1}`}</small></a>` : `<div class="missing-reference"><span>Bild</span><small>${reference.name}</small></div>`).join('')}</div>` : ''}</section>
       <section class="timeline-card"><span>VERLAUF</span><div><i></i><p><b>Anfrage eingegangen</b><small>Heute · 09:42 Uhr</small></p></div><div><i></i><p><b>Automatische Bestätigung versendet</b><small>Heute · 09:43 Uhr</small></p></div><textarea placeholder="Interne Notiz hinzufügen …"></textarea></section></div>`
       content.querySelector('.detail-back').onclick=()=>{history.pushState(null,'','/admin/anfragen/');content.innerHTML=requestsView()}
     }
