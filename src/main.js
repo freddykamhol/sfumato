@@ -805,6 +805,8 @@ function passwordMarkup() {
   </main>`
 }
 
+function adminLoginFallbackMarkup(){return `<main class="password-gate"><section class="password-panel" aria-labelledby="admin-login-title"><a class="password-brand" href="/">TATTOO <i>·</i> SFUMATO</a><div class="password-copy"><p class="password-kicker">STUDIO OS</p><h1 id="admin-login-title">Admin<br><em>Login.</em></h1><p>Melde dich mit deinem persönlichen Studio-Konto an.</p></div><form class="password-form" method="post" action="/admin/login"><label for="admin-username">BENUTZERNAME ODER E-MAIL</label><div class="password-field"><input id="admin-username" name="username" autocomplete="username" required autofocus></div><label for="admin-password" class="admin-password-label">PASSWORT</label><div class="password-field"><input id="admin-password" name="password" type="password" autocomplete="current-password" required></div><button class="password-submit" type="submit">Anmelden <span>→</span></button></form><p class="password-footer">TATTOO SFUMATO · STUDIO OS</p></section></main>`}
+
 function initPasswordGate() {
   const form = document.querySelector('#password-form')
   const input = document.querySelector('#site-password')
@@ -849,8 +851,9 @@ function initLightbox(){
 }
 
 async function render(){
-  const admin=location.pathname.replace(/\/+$/, '').startsWith('/admin')
+  const cleanPath=location.pathname.replace(/\/+$/, ''),adminLogin=cleanPath==='/admin/login',admin=cleanPath.startsWith('/admin')&&!adminLogin
   const referencesPage=location.pathname.replace(/\/+$/, '')==='/referenzen'
+  if(adminLogin){document.querySelector('#app').innerHTML=adminLoginFallbackMarkup();return}
   if(admin){
     document.querySelector('#app').innerHTML='<main class="admin-auth-check"><span>TATTOO · SFUMATO</span><i></i><p>Admin-Session wird geprüft …</p></main>'
     try{const response=await fetch('/api/auth/me',{headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-store'}),type=response.headers.get('content-type')||'',user=type.includes('application/json')?await response.json():null;if(!response.ok||!user?.id){location.replace('/admin/login');return}}

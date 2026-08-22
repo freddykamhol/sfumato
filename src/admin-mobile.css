@@ -3,6 +3,7 @@
 .admin-logout { padding: 9px 11px; border: 1px solid #d4d1ca; border-radius: 6px; background: #fff; color: #5e5a53; font-size: 9px; }
 .admin-nav-logout { margin-top: 12px !important; border-top: 1px solid #2b2d29 !important; color: #b98782 !important; }
 .admin-auth-check { min-height:100dvh; display:grid; place-content:center; justify-items:center; gap:16px; background:#0d0e0c; color:#eee9df; font-family:var(--sans); }.admin-auth-check>span { font-size:10px; font-weight:600; letter-spacing:.2em; }.admin-auth-check>i { width:26px; height:26px; border:2px solid #343530; border-top-color:var(--red); border-radius:50%; animation:admin-auth-spin .7s linear infinite; }.admin-auth-check>p { margin:0; color:#777970; font-size:9px; letter-spacing:.1em; }@keyframes admin-auth-spin{to{transform:rotate(360deg)}}
+.admin-password-label { margin-top:24px !important; }
 @media (max-width: 800px) {
   html, body, #app, .admin-shell, .admin-main { width: 100%; max-width: 100%; overflow-x: hidden; }
   body:has(.admin-shell) { background: #f2f1ed; }
