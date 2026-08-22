@@ -19,9 +19,9 @@ function siteMarkup() {
     <div class="scroll-progress" aria-hidden="true"></div><div class="cursor-dot" aria-hidden="true"></div>
     <header class="site-header">
       <a class="brand" href="#top" aria-label="Tattoo Sfumato Startseite"><span>TATTOO</span><i>·</i><span>SFUMATO</span></a>
-      <nav aria-label="Hauptnavigation"><a href="#arbeiten">Arbeiten</a><a href="#about">Das Studio</a><a href="#ablauf">Ablauf</a></nav>
+      <nav aria-label="Hauptnavigation"><a href="#arbeiten">Arbeiten</a><a href="#about">Das Studio</a><a href="#ablauf">Ablauf</a><a class="mobile-nav-cta" href="#termin">Projekt starten ${arrow}</a></nav>
       <a class="nav-cta" href="#termin">Termin anfragen ${arrow}</a>
-      <button class="menu" aria-label="Menü öffnen"><span></span><span></span></button>
+      <button class="menu" aria-label="Menü öffnen" aria-expanded="false"><span></span><span></span></button>
     </header>
     <main id="top">
       <section class="hero">
@@ -102,7 +102,17 @@ function settingsView(){return `<div class="admin-title"><div><span class="admin
 function adminMarkup() { return `<div class="admin-shell"><aside class="admin-side"><a class="brand" href="#top"><span>TATTOO</span><i>·</i><span>SFUMATO</span></a><p>STUDIO OS</p><nav><button class="active" data-view="dashboard"><span>⌂</span>Dashboard</button><button data-view="requests"><span>01</span>Anfragen <b>${demoRequests.length}</b></button><button data-view="portfolio"><span>02</span>Referenzen</button><button data-view="settings"><span>03</span>Einstellungen</button></nav><div class="admin-user"><div class="avatar">TS</div><span><b>Studio Sfumato</b><small>Administrator</small></span></div><a href="#top" class="back">← Zur Website</a></aside><main class="admin-main"><header><div><p>FREITAG, 21. AUGUST</p><h1>Guten Morgen.</h1></div><div class="header-actions"><button aria-label="Benachrichtigungen">●</button><div class="avatar">TS</div></div></header><section id="admin-content">${dashboardView()}</section></main><div class="admin-modal" aria-hidden="true"></div></div>` }
 
 function initSite() {
-  document.querySelector('.menu')?.addEventListener('click', () => document.querySelector('.site-header nav').classList.toggle('open'))
+  const menuButton = document.querySelector('.menu')
+  const siteNav = document.querySelector('.site-header nav')
+  const setMenu = open => {
+    siteNav.classList.toggle('open', open)
+    document.body.classList.toggle('menu-open', open)
+    menuButton.setAttribute('aria-expanded', String(open))
+    menuButton.setAttribute('aria-label', open ? 'Menü schließen' : 'Menü öffnen')
+  }
+  menuButton?.addEventListener('click', () => setMenu(!siteNav.classList.contains('open')))
+  siteNav?.querySelectorAll('a').forEach(link => link.addEventListener('click', () => setMenu(false)))
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') setMenu(false) })
   document.querySelectorAll('[data-protected-signature]').forEach(element => {
     element.addEventListener('contextmenu', event => event.preventDefault())
     element.addEventListener('dragstart', event => event.preventDefault())
