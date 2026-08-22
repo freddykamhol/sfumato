@@ -210,7 +210,8 @@ function initPasswordGate() {
 }
 
 function render(){
-  if (sessionStorage.getItem(ACCESS_KEY) !== 'true') {
+  const serverAccess = document.cookie.split(';').some(cookie => cookie.trim() === 'sfumato_site_client=1')
+  if (!serverAccess && sessionStorage.getItem(ACCESS_KEY) !== 'true') {
     document.querySelector('#app').innerHTML = passwordMarkup()
     initPasswordGate()
     return

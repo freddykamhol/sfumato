@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "node scripts/prepare-index.js && vite build && node scripts/publish-static.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node app.js"
   },
   "devDependencies": {
     "vite": "^8.2.0"

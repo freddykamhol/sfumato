@@ -1,0 +1,94 @@
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createReadStream, existsSync, statSync } from 'node:fs'
+import { createServer } from 'node:http'
+import { extname, join, normalize, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const root = fileURLToPath(new URL('.', import.meta.url))
+const port = Number(process.env.PORT) || 3000
+const sitePassword = process.env.DEMO_PASSWORD || 'Sfumato2026'
+const cookieName = 'sfumato_site_auth'
+const authToken = createHmac('sha256', sitePassword).update('sfumato-site-access').digest('hex')
+
+const loginPage = error => `<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#0d0e0c"><title>Geschützter Bereich | Tattoo Sfumato</title>
+<style>*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:28px;background:radial-gradient(circle at 78% 22%,#7e292248,transparent 35%),#0d0e0c;color:#f3efe7;font-family:Arial,sans-serif}.card{width:min(100%,520px);min-height:min(680px,calc(100dvh - 56px));padding:42px 46px;border:1px solid #33342f;background:#0f100ed9;display:flex;flex-direction:column;box-shadow:0 35px 90px #0006}.brand{font-size:12px;font-weight:700;letter-spacing:.24em}.brand i{color:#a93d34;font-style:normal}.copy{margin:auto 0 42px}.eyebrow{color:#aaa69c;font-size:8px;font-weight:700;letter-spacing:.22em}h1{margin:24px 0 18px;font-family:Georgia,serif;font-size:58px;font-weight:400;line-height:.98;letter-spacing:-.04em}h1 em{color:#a93d34;font-weight:400}p{margin:0;color:#aaa79f;font-size:13px;line-height:1.7}label{display:block;margin-bottom:8px;color:#aaa69c;font-size:8px;font-weight:700;letter-spacing:.18em}.input{border-bottom:1px solid #5a5a54}.input:focus-within{border-color:#b64a40}input{width:100%;height:52px;padding:0;border:0;outline:0;background:transparent;color:#fff;font-size:17px;letter-spacing:.06em}button{width:100%;height:54px;margin-top:14px;border:0;background:#f0ece4;color:#11120f;font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;cursor:pointer}button:hover{background:#b6463d;color:#fff}.error{margin:10px 0 0;color:#df7168;font-size:11px}.footer{margin-top:30px;color:#666860;font-size:7px;font-weight:700;letter-spacing:.2em}@media(max-width:600px){body{padding:0}.card{min-height:100dvh;padding:30px 24px;border:0}h1{font-size:48px}}</style></head>
+<body><main class="card"><div class="brand">TATTOO <i>·</i> SFUMATO</div><div class="copy"><div class="eyebrow">GESCHÜTZTER BEREICH</div><h1>Willkommen bei<br><em>Sfumato.</em></h1><p>Diese Seite ist derzeit nur mit Passwort zugänglich.</p></div><form method="post" action="/login"><label for="password">PASSWORT</label><div class="input"><input id="password" name="password" type="password" autocomplete="current-password" autofocus required></div>${error ? '<div class="error" role="alert">Das Passwort ist nicht korrekt.</div>' : ''}<button type="submit">Seite betreten →</button></form><div class="footer">TATTOO SFUMATO · EINBECK</div></main></body></html>`
+
+const hasValidCookie = request => {
+  const cookie = request.headers.cookie?.split(';').map(value => value.trim()).find(value => value.startsWith(`${cookieName}=`))
+  const supplied = cookie?.slice(cookieName.length + 1) || ''
+  const expectedBuffer = Buffer.from(authToken)
+  const suppliedBuffer = Buffer.from(supplied)
+  return suppliedBuffer.length === expectedBuffer.length && timingSafeEqual(suppliedBuffer, expectedBuffer)
+}
+
+const passwordsMatch = supplied => {
+  const expectedBuffer = Buffer.from(sitePassword)
+  const suppliedBuffer = Buffer.from(supplied)
+  return suppliedBuffer.length === expectedBuffer.length && timingSafeEqual(suppliedBuffer, expectedBuffer)
+}
+
+const mimeTypes = {
+  '.css': 'text/css; charset=utf-8', '.html': 'text/html; charset=utf-8', '.ico': 'image/x-icon',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.js': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml',
+  '.webp': 'image/webp', '.woff': 'font/woff', '.woff2': 'font/woff2',
+}
+
+createServer((request, response) => {
+  const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname)
+
+  if (pathname === '/health') {
+    response.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' })
+    response.end('ok')
+    return
+  }
+
+  if (pathname === '/login' && request.method === 'POST') {
+    let body = ''
+    request.on('data', chunk => { if (body.length < 4096) body += chunk })
+    request.on('end', () => {
+      const password = new URLSearchParams(body).get('password') || ''
+      if (passwordsMatch(password)) {
+        const secure = request.headers['x-forwarded-proto'] === 'https' ? '; Secure' : ''
+        response.writeHead(303, {
+          Location: '/',
+          'Set-Cookie': [
+            `${cookieName}=${authToken}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400${secure}`,
+            `sfumato_site_client=1; SameSite=Strict; Path=/; Max-Age=86400${secure}`,
+          ],
+          'Cache-Control': 'no-store',
+        })
+        response.end()
+      } else {
+        response.writeHead(401, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' })
+        response.end(loginPage(true))
+      }
+    })
+    return
+  }
+
+  if (!hasValidCookie(request)) {
+    response.writeHead(401, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' })
+    response.end(loginPage(false))
+    return
+  }
+
+  const relativePath = normalize(pathname).replace(/^([/\\])+/, '')
+  let filePath = join(root, relativePath || 'index.html')
+  const escapedRoot = relative(root, filePath).startsWith('..')
+  if (escapedRoot || !existsSync(filePath) || statSync(filePath).isDirectory()) filePath = join(root, 'index.html')
+
+  const extension = extname(filePath).toLowerCase()
+  response.writeHead(200, {
+    'Content-Type': mimeTypes[extension] || 'application/octet-stream',
+    'Cache-Control': extension === '.html' ? 'no-cache' : 'public, max-age=31536000, immutable',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+  })
+  if (request.method === 'HEAD') response.end()
+  else createReadStream(filePath).pipe(response)
+}).listen(port, '0.0.0.0', () => console.log(`Sfumato site running on port ${port}`))
