@@ -8,6 +8,12 @@ const portfolio = [
   { title: 'Wild Peony', type: 'Microrealism · Detail', position: '50% 78%' },
 ]
 const demoRequests = []
+const LOCAL_REQUESTS_KEY = 'sfumato-booking-requests'
+const readLocalRequests = () => {
+  try { return JSON.parse(localStorage.getItem(LOCAL_REQUESTS_KEY) || '[]') }
+  catch { return [] }
+}
+const saveLocalRequest = request => localStorage.setItem(LOCAL_REQUESTS_KEY, JSON.stringify([request, ...readLocalRequests()].slice(0, 250)))
 const arrow = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
 const instagram = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>'
 const adminWelcome = () => {
@@ -188,8 +194,13 @@ function initSite() {
     message.textContent = ''
     try {
       const response = await fetch('/api/requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.error)
+      const responseText = await response.text()
+      let result
+      try { result = responseText ? JSON.parse(responseText) : null } catch { result = null }
+      if (!response.ok || !result?.id) {
+        result = { ...payload, id: `LOCAL-${Date.now()}`, date: new Date().toISOString(), status: 'Neu', source: 'form', localOnly: true }
+        saveLocalRequest(result)
+      }
       demoRequests.unshift(result)
       form.reset(); selectTrigger.firstChild.textContent='Bitte auswählen'; selectOptions.querySelectorAll('[role="option"]').forEach(item=>item.removeAttribute('aria-selected')); consultationChoice.hidden=true; consultationTypes.forEach(option=>option.required=false)
       message.textContent='Danke! Deine Anfrage ist angekommen. Wir melden uns persönlich bei dir.'
@@ -301,22 +312,36 @@ function initAdmin() {
     const empty = content.querySelector('.filter-empty')
     if (empty) empty.hidden = visible !== 0
   }
-  fetch('/api/requests', { headers: { Accept: 'application/json' } }).then(response => {
-    if (!response.ok) throw new Error('Anfragen konnten nicht geladen werden.')
-    return response.json()
-  }).then(requests => {
-    const examples = demoRequests.filter(request => request.source !== 'form')
-    demoRequests.splice(0, demoRequests.length, ...requests, ...examples)
+  const openAdminDeepLink = () => {
+    const params = new URLSearchParams(location.search)
+    const appointmentDay = params.get('termin')
+    const requestId = params.get('anfrage')
+    if (appointmentDay) content.querySelector(`[data-appointment="${CSS.escape(appointmentDay)}"]`)?.click()
+    if (requestId) {
+      const index = demoRequests.findIndex(request => request.id === requestId)
+      content.querySelector(`[data-request="${index}"]`)?.click()
+      const action = params.get('aktion')
+      if (action) queueMicrotask(() => content.querySelector(action === 'rueckfrage' ? '[data-question]' : '[data-proposals]')?.click())
+    }
+    if (params.get('aktion') === 'smtp') queueMicrotask(() => content.querySelector('[data-smtp]')?.click())
+  }
+  const syncAdminRequests = requests => {
+    const merged = [...requests, ...readLocalRequests()].filter((request, index, all) => all.findIndex(item => item.id === request.id) === index)
+    demoRequests.splice(0, demoRequests.length, ...merged)
     const badge = document.querySelector('[data-view="requests"] b')
     if (badge) badge.textContent = demoRequests.length
     const activeView = document.querySelector('[data-view].active')?.dataset.view
     if (activeView === 'requests') content.innerHTML = requestsView()
     else if (activeView === 'dashboard') content.innerHTML = dashboardView()
-  }).catch(error => {
-    console.error(error)
-  })
+    openAdminDeepLink()
+  }
+  fetch('/api/requests', { headers: { Accept: 'application/json' } }).then(async response => {
+    const text = await response.text()
+    if (!response.ok || !text) throw new Error('Anfragen konnten nicht geladen werden.')
+    return JSON.parse(text)
+  }).then(syncAdminRequests).catch(() => syncAdminRequests([]))
   const openModal=html=>{modal.innerHTML=`<div class="modal-backdrop" data-close></div><section class="modal-sheet">${html}</section>`;modal.classList.add('open');modal.setAttribute('aria-hidden','false')}
-  const closeModal=()=>{modal.classList.remove('open');modal.setAttribute('aria-hidden','true')}
+  const closeModal=()=>{modal.classList.remove('open');modal.setAttribute('aria-hidden','true');const url=new URL(location.href);url.searchParams.delete('aktion');history.replaceState(null,'',url)}
   modal.addEventListener('click',e=>{
     if(e.target.closest('[data-send-proposals]')){
       closeModal()
@@ -335,8 +360,8 @@ function initAdmin() {
       return
     }
     const appointment=e.target.closest('[data-appointment]')
-    if(appointment){content.innerHTML=appointmentView(appointment.dataset.appointment);return}
-    if(e.target.closest('[data-back-dashboard]')){content.innerHTML=dashboardView();return}
+    if(appointment){const url=new URL('/admin/',location.origin);url.searchParams.set('termin',appointment.dataset.appointment);if(location.href!==url.href)history.pushState(null,'',url);content.innerHTML=appointmentView(appointment.dataset.appointment);return}
+    if(e.target.closest('[data-back-dashboard]')){history.pushState(null,'','/admin/');content.innerHTML=dashboardView();return}
     if(e.target.closest('[data-confirm-slot]')){
       e.target.closest('.response-banner').innerHTML=`<div><span class="positive">KUNDIN HAT ZUGESAGT</span><b>Do, 03. September · 12:30–16:30 Uhr</b><small>Der Termin ist reserviert und bereit zur Übernahme.</small></div><button class="save-settings" data-calendar-add>In Google Kalender eintragen →</button>`;return
     }
@@ -344,15 +369,16 @@ function initAdmin() {
     const row=e.target.closest('[data-request]')
     if(row){
       const r=demoRequests[row.dataset.request]
+      const url=new URL('/admin/anfragen/',location.origin);url.searchParams.set('anfrage',r.id);if(location.href!==url.href)history.pushState(null,'',url)
       content.innerHTML=`<div class="detail-top"><button class="detail-back">← Anfragen</button><div><button class="secondary-action" data-question>Rückfrage senden</button><button class="save-settings" data-proposals>Terminvorschläge erstellen</button></div></div>
       <div class="request-hero"><div><span class="admin-kicker">${r.id} · EINGANG ${r.source === 'form' ? new Date(r.date).toLocaleDateString('de-DE') : r.date}</span><h2>${r.name}</h2><p>${r.phone || 'Keine Telefonnummer'} · ${r.email || 'Keine E-Mail-Adresse'}</p></div><i class="status neu">${r.status}</i></div>
       <div class="request-detail-grid"><section class="project-card"><span>PROJEKTDETAILS</span><dl><div><dt>Stil</dt><dd>${r.style || 'Nicht angegeben'}</dd></div><div><dt>Körperstelle</dt><dd>${r.placement || 'Nicht angegeben'}</dd></div><div><dt>Größe</dt><dd>${r.size || 'Nicht angegeben'}</dd></div><div><dt>Beratung</dt><dd>${r.consultation ? (r.consultationType === 'phone' ? 'Telefonisch' : 'Persönlich im Studio') : 'Nicht gewünscht'}</dd></div></dl><span>BESCHREIBUNG</span><p>${r.idea || r.motif || 'Keine Beschreibung vorhanden.'}</p></section>
       <section class="timeline-card"><span>VERLAUF</span><div><i></i><p><b>Anfrage eingegangen</b><small>Heute · 09:42 Uhr</small></p></div><div><i></i><p><b>Automatische Bestätigung versendet</b><small>Heute · 09:43 Uhr</small></p></div><textarea placeholder="Interne Notiz hinzufügen …"></textarea></section></div>`
-      content.querySelector('.detail-back').onclick=()=>content.innerHTML=requestsView()
+      content.querySelector('.detail-back').onclick=()=>{history.pushState(null,'','/admin/anfragen/');content.innerHTML=requestsView()}
     }
-    if(e.target.closest('[data-question]')) openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">E-MAIL</span><h2>Rückfrage senden</h2><label>AN<input value="mara.k@example.de"></label><label>BETREFF<input value="Rückfrage zu deiner Tattoo-Anfrage"></label><label>NACHRICHT<textarea rows="8">Hallo Mara,\n\nvielen Dank für deine Anfrage bei Tattoo Sfumato. Für die Planung habe ich noch eine kurze Rückfrage:\n\n</textarea></label><label class="modal-upload"><input type="file" multiple>＋ Anhänge hinzufügen</label><button class="save-settings modal-send" data-close>E-Mail senden →</button>`)
-    if(e.target.closest('[data-proposals]')) openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">SMART SCHEDULING</span><h2>Drei freie Termine</h2><p class="modal-lead">Berechnet aus 4 Std. Zeitaufwand, Öffnungszeiten und verbundenem Google Kalender.</p><div class="proposal-list"><label><input type="checkbox" checked><span><b>Do, 03. September</b><small>12:30–16:30 Uhr · 4 Std.</small></span><i>FREI</i></label><label><input type="checkbox" checked><span><b>Fr, 04. September</b><small>10:00–14:00 Uhr · 4 Std.</small></span><i>FREI</i></label><label><input type="checkbox" checked><span><b>Mi, 09. September</b><small>13:00–17:00 Uhr · 4 Std.</small></span><i>FREI</i></label></div><button class="other-slots">＋ Drei andere Termine wählen</button><div class="modal-actions"><button data-close>Abbrechen</button><button class="save-settings" data-send-proposals>Vorschläge per Mail senden →</button></div>`)
-    if(e.target.closest('[data-smtp]')) openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">INTEGRATION</span><h2>SMTP konfigurieren</h2><div class="smtp-grid"><label>SERVER<input placeholder="smtp.provider.de"></label><label>PORT<input value="587"></label><label>BENUTZERNAME<input placeholder="studio@domain.de"></label><label>VERSCHLÜSSELUNG<select><option>STARTTLS</option><option>SSL/TLS</option></select></label><label class="full">PASSWORT<input type="password" value="••••••••••••"></label></div><div class="modal-actions"><button>Verbindung testen</button><button class="save-settings" data-close>Speichern</button></div>`)
+    if(e.target.closest('[data-question]')) { const url=new URL(location.href);url.searchParams.set('aktion','rueckfrage');if(location.href!==url.href)history.pushState(null,'',url);openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">E-MAIL</span><h2>Rückfrage senden</h2><label>AN<input value="mara.k@example.de"></label><label>BETREFF<input value="Rückfrage zu deiner Tattoo-Anfrage"></label><label>NACHRICHT<textarea rows="8">Hallo Mara,\n\nvielen Dank für deine Anfrage bei Tattoo Sfumato. Für die Planung habe ich noch eine kurze Rückfrage:\n\n</textarea></label><label class="modal-upload"><input type="file" multiple>＋ Anhänge hinzufügen</label><button class="save-settings modal-send" data-close>E-Mail senden →</button>`)}
+    if(e.target.closest('[data-proposals]')) { const url=new URL(location.href);url.searchParams.set('aktion','termine');if(location.href!==url.href)history.pushState(null,'',url);openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">SMART SCHEDULING</span><h2>Drei freie Termine</h2><p class="modal-lead">Berechnet aus 4 Std. Zeitaufwand, Öffnungszeiten und verbundenem Google Kalender.</p><div class="proposal-list"><label><input type="checkbox" checked><span><b>Do, 03. September</b><small>12:30–16:30 Uhr · 4 Std.</small></span><i>FREI</i></label><label><input type="checkbox" checked><span><b>Fr, 04. September</b><small>10:00–14:00 Uhr · 4 Std.</small></span><i>FREI</i></label><label><input type="checkbox" checked><span><b>Mi, 09. September</b><small>13:00–17:00 Uhr · 4 Std.</small></span><i>FREI</i></label></div><button class="other-slots">＋ Drei andere Termine wählen</button><div class="modal-actions"><button data-close>Abbrechen</button><button class="save-settings" data-send-proposals>Vorschläge per Mail senden →</button></div>`)}
+    if(e.target.closest('[data-smtp]')) { const url=new URL(location.href);url.searchParams.set('aktion','smtp');if(location.href!==url.href)history.pushState(null,'',url);openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">INTEGRATION</span><h2>SMTP konfigurieren</h2><div class="smtp-grid"><label>SERVER<input placeholder="smtp.provider.de"></label><label>PORT<input value="587"></label><label>BENUTZERNAME<input placeholder="studio@domain.de"></label><label>VERSCHLÜSSELUNG<select><option>STARTTLS</option><option>SSL/TLS</option></select></label><label class="full">PASSWORT<input type="password" value="••••••••••••"></label></div><div class="modal-actions"><button>Verbindung testen</button><button class="save-settings" data-close>Speichern</button></div>`)}
   })
   content.addEventListener('change',e=>{
     if(e.target.closest('[data-request-filter]')) applyRequestFilters()
@@ -426,4 +452,8 @@ function render(){
 window.addEventListener('hashchange', () => {
   const target = location.hash && document.querySelector(location.hash)
   target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}); render()
+})
+window.addEventListener('popstate', () => {
+  if (location.pathname.replace(/\/+$/, '').startsWith('/admin')) render()
+})
+render()
