@@ -96,7 +96,15 @@ function appointmentView(day){
     </aside>
   </div>`
 }
-function requestsView() { return `<div class="admin-title"><div><span class="admin-kicker">INBOX</span><h2>Anfragen</h2><p>Alle eingehenden Tattoo-Projekte priorisiert an einem Ort.</p></div><button class="filter">Status: Alle ↓</button></div><div class="request-list request-inbox"><div class="list-head"><span>NAME / KONTAKT</span><span>STIL</span><span>PROJEKT</span><span>STATUS</span><span></span></div>${demoRequests.length ? demoRequests.map((r,i)=>`<button class="request-row" data-request="${i}"><span><b>${r.name}</b><small>${r.email || r.phone || 'Keine Kontaktdaten'} · ${r.id}</small></span><span><b>${r.style || 'Nicht angegeben'}</b><small>${r.placement || 'Körperstelle offen'}</small></span><span><b>${r.size || 'Größe offen'}</b><small>${r.consultation ? `Beratung: ${r.consultationType === 'phone' ? 'telefonisch' : 'im Studio'}` : 'Direkte Anfrage'}</small></span><span><i class="status ${r.status.replace(' ','-').toLowerCase()}">${r.status}</i></span><span class="row-arrow">↗</span></button>`).join('') : '<div class="request-empty"><span>00</span><h3>Noch keine Anfragen.</h3><p>Neue Booking-Anfragen erscheinen automatisch an dieser Stelle.</p></div>'}</div>` }
+function consultationBadge(request) {
+  if (!request.consultation) return '<i class="consultation-badge none"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg><span>Keine Beratung</span></i>'
+  if (request.consultationType === 'phone') return '<i class="consultation-badge phone"><svg viewBox="0 0 24 24"><path d="M7 3h3l1.5 5-2 1.5a15 15 0 0 0 5 5L16 12.5l5 1.5v3c0 2.2-1.8 4-4 4A14 14 0 0 1 3 7c0-2.2 1.8-4 4-4Z"/></svg><span>Telefon</span></i>'
+  return '<i class="consultation-badge studio"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg><span>Persönlich</span></i>'
+}
+function requestsView() {
+  const rows = demoRequests.map((r,i)=>`<button class="request-row" data-request="${i}" data-style="${r.style || ''}" data-consultation="${r.consultation ? (r.consultationType === 'phone' ? 'phone' : 'studio') : 'none'}" data-status="${r.status}"><span><b>${r.name}</b><small>${r.email || r.phone || 'Keine Kontaktdaten'} · ${r.id}</small></span><span><b>${r.style || 'Nicht angegeben'}</b><small>${r.placement || 'Körperstelle offen'}</small></span><span><b>${r.size || 'Größe offen'}</b><small>Projektumfang</small></span><span>${consultationBadge(r)}</span><span><i class="status ${r.status.replace(' ','-').toLowerCase()}">${r.status}</i></span><span class="row-arrow">↗</span></button>`).join('')
+  return `<div class="admin-title"><div><span class="admin-kicker">INBOX</span><h2>Anfragen</h2><p>Alle eingehenden Tattoo-Projekte priorisiert an einem Ort.</p></div></div><div class="request-filters" aria-label="Anfragen filtern"><label>STIL<select data-request-filter="style"><option value="">Alle Stile</option><option>Realistic</option><option>Microrealism</option><option>Fineline</option><option>Andere Richtung</option></select></label><label>BERATUNG<select data-request-filter="consultation"><option value="">Alle</option><option value="phone">Telefon</option><option value="studio">Persönlich</option></select></label><label>STATUS<select data-request-filter="status"><option value="">Alle Status</option><option>Neu</option><option>In Klärung</option><option>Bestätigt</option></select></label><button type="button" data-reset-filters>Filter zurücksetzen</button></div><div class="request-list request-inbox"><div class="list-head"><span>NAME / KONTAKT</span><span>STIL</span><span>PROJEKT</span><span>BERATUNG</span><span>STATUS</span><span></span></div>${demoRequests.length ? rows+'<div class="request-empty filter-empty" hidden><span>00</span><h3>Keine Treffer.</h3><p>Für diese Filterkombination liegen keine Anfragen vor.</p></div>' : '<div class="request-empty"><span>00</span><h3>Noch keine Anfragen.</h3><p>Neue Booking-Anfragen erscheinen automatisch an dieser Stelle.</p></div>'}</div>`
+}
 function portfolioView() { return `<div class="admin-title"><div><h2>Referenzen</h2><p>Arbeiten für die öffentliche Galerie verwalten.</p></div><label class="admin-upload"><input id="portfolio-upload" type="file" accept="image/*" multiple>+ Neue Arbeit</label></div><div class="admin-gallery" id="admin-gallery">${portfolio.map(p=>`<article><img src="/studio-hero.png" style="object-position:${p.position}"><div><b>${p.title}</b><small>${p.type}</small></div><button aria-label="Referenz verwalten">···</button></article>`).join('')}</div>` }
 function settingsView(){return `<div class="admin-title"><div><span class="admin-kicker">SYSTEM</span><h2>Einstellungen</h2><p>Verbindungen und Verfügbarkeiten für die automatische Terminplanung.</p></div><button class="save-settings">Änderungen speichern</button></div><div class="settings-layout">
   <section class="integration-card"><div class="integration-icon">G</div><div><h3>Google Kalender</h3><p>Termine lesen, freie Zeiten prüfen und bestätigte Termine eintragen.</p></div><span class="connected">VERBUNDEN</span><button>Verbindung verwalten</button></section>
@@ -280,6 +288,19 @@ function initUploads(){ document.querySelector('#portfolio-upload')?.addEventLis
 function initAdmin() {
   const content=document.querySelector('#admin-content')
   const modal=document.querySelector('.admin-modal')
+  const applyRequestFilters = () => {
+    const style = content.querySelector('[data-request-filter="style"]')?.value || ''
+    const consultation = content.querySelector('[data-request-filter="consultation"]')?.value || ''
+    const status = content.querySelector('[data-request-filter="status"]')?.value || ''
+    let visible = 0
+    content.querySelectorAll('.request-row').forEach(row => {
+      const show = (!style || row.dataset.style === style) && (!consultation || row.dataset.consultation === consultation) && (!status || row.dataset.status === status)
+      row.hidden = !show
+      if (show) visible++
+    })
+    const empty = content.querySelector('.filter-empty')
+    if (empty) empty.hidden = visible !== 0
+  }
   fetch('/api/requests', { headers: { Accept: 'application/json' } }).then(response => {
     if (!response.ok) throw new Error('Anfragen konnten nicht geladen werden.')
     return response.json()
@@ -308,6 +329,11 @@ function initAdmin() {
   })
   if (currentAdminView() === 'portfolio') initUploads()
   content.addEventListener('click', e => {
+    if(e.target.closest('[data-reset-filters]')){
+      content.querySelectorAll('[data-request-filter]').forEach(filter => { filter.value = '' })
+      applyRequestFilters()
+      return
+    }
     const appointment=e.target.closest('[data-appointment]')
     if(appointment){content.innerHTML=appointmentView(appointment.dataset.appointment);return}
     if(e.target.closest('[data-back-dashboard]')){content.innerHTML=dashboardView();return}
@@ -328,7 +354,10 @@ function initAdmin() {
     if(e.target.closest('[data-proposals]')) openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">SMART SCHEDULING</span><h2>Drei freie Termine</h2><p class="modal-lead">Berechnet aus 4 Std. Zeitaufwand, Öffnungszeiten und verbundenem Google Kalender.</p><div class="proposal-list"><label><input type="checkbox" checked><span><b>Do, 03. September</b><small>12:30–16:30 Uhr · 4 Std.</small></span><i>FREI</i></label><label><input type="checkbox" checked><span><b>Fr, 04. September</b><small>10:00–14:00 Uhr · 4 Std.</small></span><i>FREI</i></label><label><input type="checkbox" checked><span><b>Mi, 09. September</b><small>13:00–17:00 Uhr · 4 Std.</small></span><i>FREI</i></label></div><button class="other-slots">＋ Drei andere Termine wählen</button><div class="modal-actions"><button data-close>Abbrechen</button><button class="save-settings" data-send-proposals>Vorschläge per Mail senden →</button></div>`)
     if(e.target.closest('[data-smtp]')) openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">INTEGRATION</span><h2>SMTP konfigurieren</h2><div class="smtp-grid"><label>SERVER<input placeholder="smtp.provider.de"></label><label>PORT<input value="587"></label><label>BENUTZERNAME<input placeholder="studio@domain.de"></label><label>VERSCHLÜSSELUNG<select><option>STARTTLS</option><option>SSL/TLS</option></select></label><label class="full">PASSWORT<input type="password" value="••••••••••••"></label></div><div class="modal-actions"><button>Verbindung testen</button><button class="save-settings" data-close>Speichern</button></div>`)
   })
-  content.addEventListener('change',e=>{if(e.target.closest('.asset-upload'))[...e.target.files].forEach(file=>{const url=URL.createObjectURL(file);content.querySelector('.asset-placeholder')?.insertAdjacentHTML('beforebegin',`<article><img src="${url}"><span><b>Zugewiesenes Bild</b><small>${file.name}</small></span><i>NEU</i></article>`)})})
+  content.addEventListener('change',e=>{
+    if(e.target.closest('[data-request-filter]')) applyRequestFilters()
+    if(e.target.closest('.asset-upload'))[...e.target.files].forEach(file=>{const url=URL.createObjectURL(file);content.querySelector('.asset-placeholder')?.insertAdjacentHTML('beforebegin',`<article><img src="${url}"><span><b>Zugewiesenes Bild</b><small>${file.name}</small></span><i>NEU</i></article>`)})
+  })
 }
 const ACCESS_PASSWORD = 'Sfumato2026'
 const ACCESS_KEY = 'sfumato-access-granted'
