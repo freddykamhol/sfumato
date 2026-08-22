@@ -8,7 +8,7 @@
     "build": "node scripts/prepare-index.js && vite build && node scripts/publish-static.js",
     "preview": "vite preview",
     "start": "node app.js",
-    "live": "npm run build && node app.js"
+    "live": "npm install --include=dev --include=prod --no-audit --no-fund && npm run build && node app.js"
   },
   "devDependencies": {
     "vite": "^8.2.0"
