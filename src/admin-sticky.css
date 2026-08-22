@@ -115,6 +115,26 @@
   gap: 12px;
 }
 
+.request-inbox .request-row.unread {
+  background: rgba(158, 44, 36, 0.075);
+  box-shadow: inset 3px 0 0 rgba(158, 44, 36, 0.75);
+}
+
+.request-inbox .request-row.unread:hover {
+  background: rgba(158, 44, 36, 0.12);
+}
+
+.unread-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 0 3px rgba(158, 44, 36, 0.12);
+  vertical-align: middle;
+}
+
 .consultation-badge {
   display: inline-flex;
   align-items: center;

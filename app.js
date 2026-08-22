@@ -99,6 +99,18 @@ createServer((request, response) => {
     return
   }
 
+  const readRequestMatch = pathname.match(/^\/api\/requests\/([^/]+)\/read$/)
+  if (readRequestMatch && request.method === 'PATCH') {
+    readRequests().then(async requests => {
+      const requestEntry = requests.find(entry => entry.id === decodeURIComponent(readRequestMatch[1]))
+      if (!requestEntry) return sendJson(response, 404, { error: 'Anfrage nicht gefunden.' })
+      requestEntry.readAt = requestEntry.readAt || new Date().toISOString()
+      await saveRequests(requests)
+      sendJson(response, 200, { id: requestEntry.id, readAt: requestEntry.readAt })
+    }).catch(() => sendJson(response, 500, { error: 'Lesestatus konnte nicht gespeichert werden.' }))
+    return
+  }
+
   if (pathname === '/api/requests' && request.method === 'POST') {
     let body = ''
     let tooLarge = false

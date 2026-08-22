@@ -22,6 +22,14 @@ const saveLocalRequest = request => {
     localStorage.setItem(LOCAL_REQUESTS_KEY, JSON.stringify(compact))
   }
 }
+const markLocalRequestRead = id => {
+  const requests = readLocalRequests()
+  const request = requests.find(item => item.id === id)
+  if (!request) return
+  request.readAt = request.readAt || new Date().toISOString()
+  localStorage.setItem(LOCAL_REQUESTS_KEY, JSON.stringify(requests))
+}
+const sortRequests = requests => requests.sort((a,b) => Number(Boolean(a.readAt))-Number(Boolean(b.readAt)) || new Date(b.date)-new Date(a.date))
 const arrow = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
 const instagram = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>'
 const adminWelcome = () => {
@@ -116,7 +124,7 @@ function consultationBadge(request) {
   return '<i class="consultation-badge studio"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg><span>Persönlich</span></i>'
 }
 function requestsView() {
-  const rows = demoRequests.map((r,i)=>`<button class="request-row" data-request="${i}" data-style="${r.style || ''}" data-consultation="${r.consultation ? (r.consultationType === 'phone' ? 'phone' : 'studio') : 'none'}" data-status="${r.status}"><span><b>${r.name}</b><small>${r.email || r.phone || 'Keine Kontaktdaten'} · ${r.id}</small></span><span><b>${r.style || 'Nicht angegeben'}</b><small>${r.placement || 'Körperstelle offen'}</small></span><span><b>${r.size || 'Größe offen'}</b><small>Projektumfang</small></span><span>${consultationBadge(r)}</span><span><i class="status ${r.status.replace(' ','-').toLowerCase()}">${r.status}</i></span><span class="row-arrow">↗</span></button>`).join('')
+  const rows = demoRequests.map((r,i)=>`<button class="request-row ${r.readAt ? '' : 'unread'}" data-request="${i}" data-style="${r.style || ''}" data-consultation="${r.consultation ? (r.consultationType === 'phone' ? 'phone' : 'studio') : 'none'}" data-status="${r.status}"><span><b>${r.name}${r.readAt ? '' : '<i class="unread-dot" aria-label="Ungelesen"></i>'}</b><small>${r.email || r.phone || 'Keine Kontaktdaten'} · ${r.id}</small></span><span><b>${r.style || 'Nicht angegeben'}</b><small>${r.placement || 'Körperstelle offen'}</small></span><span><b>${r.size || 'Größe offen'}</b><small>Projektumfang</small></span><span>${consultationBadge(r)}</span><span><i class="status ${r.status.replace(' ','-').toLowerCase()}">${r.status}</i></span><span class="row-arrow">↗</span></button>`).join('')
   return `<div class="admin-title"><div><span class="admin-kicker">INBOX</span><h2>Anfragen</h2><p>Alle eingehenden Tattoo-Projekte priorisiert an einem Ort.</p></div></div><div class="request-filters" aria-label="Anfragen filtern"><label>STIL<select data-request-filter="style"><option value="">Alle Stile</option><option>Realistic</option><option>Microrealism</option><option>Fineline</option><option>Andere Richtung</option></select></label><label>BERATUNG<select data-request-filter="consultation"><option value="">Alle</option><option value="phone">Telefon</option><option value="studio">Persönlich</option></select></label><label>STATUS<select data-request-filter="status"><option value="">Alle Status</option><option>Neu</option><option>In Klärung</option><option>Bestätigt</option></select></label><button type="button" data-reset-filters>Filter zurücksetzen</button></div><div class="request-list request-inbox"><div class="list-head"><span>NAME / KONTAKT</span><span>STIL</span><span>PROJEKT</span><span>BERATUNG</span><span>STATUS</span><span></span></div>${demoRequests.length ? rows+'<div class="request-empty filter-empty" hidden><span>00</span><h3>Keine Treffer.</h3><p>Für diese Filterkombination liegen keine Anfragen vor.</p></div>' : '<div class="request-empty"><span>00</span><h3>Noch keine Anfragen.</h3><p>Neue Booking-Anfragen erscheinen automatisch an dieser Stelle.</p></div>'}</div>`
 }
 function portfolioView() { return `<div class="admin-title"><div><h2>Referenzen</h2><p>Arbeiten für die öffentliche Galerie verwalten.</p></div><label class="admin-upload"><input id="portfolio-upload" type="file" accept="image/*" multiple>+ Neue Arbeit</label></div><div class="admin-gallery" id="admin-gallery">${portfolio.map(p=>`<article><img src="/studio-hero.png" style="object-position:${p.position}"><div><b>${p.title}</b><small>${p.type}</small></div><button aria-label="Referenz verwalten">···</button></article>`).join('')}</div>` }
@@ -363,10 +371,10 @@ function initAdmin() {
     if (params.get('aktion') === 'smtp') queueMicrotask(() => content.querySelector('[data-smtp]')?.click())
   }
   const syncAdminRequests = requests => {
-    const merged = [...requests, ...readLocalRequests()].filter((request, index, all) => all.findIndex(item => item.id === request.id) === index)
+    const merged = sortRequests([...requests, ...readLocalRequests()].filter((request, index, all) => all.findIndex(item => item.id === request.id) === index))
     demoRequests.splice(0, demoRequests.length, ...merged)
     const badge = document.querySelector('[data-view="requests"] b')
-    if (badge) badge.textContent = demoRequests.length
+    if (badge) badge.textContent = demoRequests.filter(request => !request.readAt).length
     const activeView = document.querySelector('[data-view].active')?.dataset.view
     if (activeView === 'requests') content.innerHTML = requestsView()
     else if (activeView === 'dashboard') content.innerHTML = dashboardView()
@@ -406,12 +414,19 @@ function initAdmin() {
     const row=e.target.closest('[data-request]')
     if(row){
       const r=demoRequests[row.dataset.request]
+      if (!r.readAt) {
+        r.readAt = new Date().toISOString()
+        markLocalRequestRead(r.id)
+        fetch(`/api/requests/${encodeURIComponent(r.id)}/read`, { method: 'PATCH' }).catch(() => {})
+        const badge = document.querySelector('[data-view="requests"] b')
+        if (badge) badge.textContent = demoRequests.filter(request => !request.readAt).length
+      }
       const url=new URL('/admin/anfragen/',location.origin);url.searchParams.set('anfrage',r.id);if(location.href!==url.href)history.pushState(null,'',url)
       content.innerHTML=`<div class="detail-top"><button class="detail-back">← Anfragen</button><div><button class="secondary-action" data-question>Rückfrage senden</button><button class="save-settings" data-proposals>Terminvorschläge erstellen</button></div></div>
       <div class="request-hero"><div><span class="admin-kicker">${r.id} · EINGANG ${r.source === 'form' ? new Date(r.date).toLocaleDateString('de-DE') : r.date}</span><h2>${r.name}</h2><p>${r.phone || 'Keine Telefonnummer'} · ${r.email || 'Keine E-Mail-Adresse'}</p></div><i class="status neu">${r.status}</i></div>
       <div class="request-detail-grid"><section class="project-card"><span>PROJEKTDETAILS</span><dl><div><dt>Stil</dt><dd>${r.style || 'Nicht angegeben'}</dd></div><div><dt>Körperstelle</dt><dd>${r.placement || 'Nicht angegeben'}</dd></div><div><dt>Größe</dt><dd>${r.size || 'Nicht angegeben'}</dd></div><div><dt>Beratung</dt><dd>${r.consultation ? (r.consultationType === 'phone' ? 'Telefonisch' : 'Persönlich im Studio') : 'Nicht gewünscht'}</dd></div></dl><span>BESCHREIBUNG</span><p>${r.idea || r.motif || 'Keine Beschreibung vorhanden.'}</p>${r.references?.length ? `<span>REFERENZBILDER</span><div class="request-references">${r.references.map((reference,index)=>reference.url || reference.data ? `<a href="${reference.url || reference.data}" target="_blank" rel="noopener"><img src="${reference.url || reference.data}" alt="Referenzbild ${index + 1}"><small>${reference.name || `Referenz ${index + 1}`}</small></a>` : `<div class="missing-reference"><span>Bild</span><small>${reference.name}</small></div>`).join('')}</div>` : ''}</section>
       <section class="timeline-card"><span>VERLAUF</span><div><i></i><p><b>Anfrage eingegangen</b><small>Heute · 09:42 Uhr</small></p></div><div><i></i><p><b>Automatische Bestätigung versendet</b><small>Heute · 09:43 Uhr</small></p></div><textarea placeholder="Interne Notiz hinzufügen …"></textarea></section></div>`
-      content.querySelector('.detail-back').onclick=()=>{history.pushState(null,'','/admin/anfragen/');content.innerHTML=requestsView()}
+      content.querySelector('.detail-back').onclick=()=>{history.pushState(null,'','/admin/anfragen/');sortRequests(demoRequests);content.innerHTML=requestsView()}
     }
     if(e.target.closest('[data-question]')) { const url=new URL(location.href);url.searchParams.set('aktion','rueckfrage');if(location.href!==url.href)history.pushState(null,'',url);openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">E-MAIL</span><h2>Rückfrage senden</h2><label>AN<input value="mara.k@example.de"></label><label>BETREFF<input value="Rückfrage zu deiner Tattoo-Anfrage"></label><label>NACHRICHT<textarea rows="8">Hallo Mara,\n\nvielen Dank für deine Anfrage bei Tattoo Sfumato. Für die Planung habe ich noch eine kurze Rückfrage:\n\n</textarea></label><label class="modal-upload"><input type="file" multiple>＋ Anhänge hinzufügen</label><button class="save-settings modal-send" data-close>E-Mail senden →</button>`)}
     if(e.target.closest('[data-proposals]')) { const url=new URL(location.href);url.searchParams.set('aktion','termine');if(location.href!==url.href)history.pushState(null,'',url);openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">SMART SCHEDULING</span><h2>Drei freie Termine</h2><p class="modal-lead">Berechnet aus 4 Std. Zeitaufwand, Öffnungszeiten und verbundenem Google Kalender.</p><div class="proposal-list"><label><input type="checkbox" checked><span><b>Do, 03. September</b><small>12:30–16:30 Uhr · 4 Std.</small></span><i>FREI</i></label><label><input type="checkbox" checked><span><b>Fr, 04. September</b><small>10:00–14:00 Uhr · 4 Std.</small></span><i>FREI</i></label><label><input type="checkbox" checked><span><b>Mi, 09. September</b><small>13:00–17:00 Uhr · 4 Std.</small></span><i>FREI</i></label></div><button class="other-slots">＋ Drei andere Termine wählen</button><div class="modal-actions"><button data-close>Abbrechen</button><button class="save-settings" data-send-proposals>Vorschläge per Mail senden →</button></div>`)}
