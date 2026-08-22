@@ -1,0 +1,134 @@
+/* Admin typography floor: keep the established layout, remove microscopic UI text. */
+.admin-shell {
+  font-size: 14px;
+}
+
+.admin-main > header p,
+.admin-kicker,
+.admin-side > p,
+.dashboard-stats span,
+.project-card > span,
+.timeline-card > span,
+.appointment-section-head span,
+.files-list > span,
+.today-files .admin-kicker {
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.admin-side nav a {
+  font-size: 13px;
+}
+
+.admin-side nav a > span,
+.admin-side nav a > b,
+.admin-user span b,
+.admin-user span small,
+.admin-side .back {
+  font-size: 10px;
+}
+
+.admin-title p,
+.request-hero p,
+.project-card > p,
+.modal-lead,
+.appointment-copy,
+.today-empty {
+  font-size: 13px;
+}
+
+.dashboard-stats small,
+.list-head,
+.request-row small,
+.request-row span > b,
+.appointment-files-list small,
+.appointment-files-list i,
+.customer-list article div small,
+.today-file-list span small,
+.today-file-list i,
+.calendar-head > div:last-child,
+.cal-day small,
+.cal-day em {
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.request-row,
+.customer-list article div b,
+.appointment-files-list span b,
+.today-file-list span b,
+.project-card dd,
+.timeline-card b,
+.timeline-card small {
+  font-size: 12px;
+}
+
+.status,
+.consultation-badge,
+.connected,
+.form-label,
+.request-filters label,
+.appointment-form-grid label,
+.modal-sheet > label,
+.smtp-grid label {
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.request-filters select,
+.admin-appointment-form input,
+.admin-appointment-form textarea,
+.modal-sheet input,
+.modal-sheet textarea,
+.modal-sheet select,
+.project-card select,
+.timeline-card textarea {
+  font-size: 14px;
+}
+
+.sync-btn,
+.save-settings,
+.secondary-action,
+.request-filters > button,
+.integration-card button,
+.modal-actions button {
+  font-size: 11px;
+}
+
+.calendar-grid > b,
+.cal-day span {
+  font-size: 11px;
+}
+
+.hours-row b,
+.hours-row > span,
+.settings-heading > span,
+.integration-card p,
+.hours-card p {
+  font-size: 11px;
+}
+
+.integration-card h3,
+.hours-card h3 {
+  font-size: 16px;
+}
+
+@media (max-width: 800px) {
+  .admin-side nav a {
+    font-size: 10px;
+  }
+
+  .admin-side nav a > span {
+    font-size: 13px;
+  }
+
+  .admin-main > header h1 {
+    font-size: 19px;
+  }
+
+  .request-row small,
+  .appointment-files-list small,
+  .customer-list article div small {
+    font-size: 10px;
+  }
+}
