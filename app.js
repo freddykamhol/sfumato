@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { createReadStream, existsSync, statSync } from 'node:fs'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { extname, join, normalize, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,6 +10,22 @@ const port = Number(process.env.PORT) || 3000
 const sitePassword = process.env.DEMO_PASSWORD || 'Sfumato2026'
 const cookieName = 'sfumato_site_auth'
 const authToken = createHmac('sha256', sitePassword).update('sfumato-site-access').digest('hex')
+const dataDirectory = join(root, 'data')
+const requestsFile = join(dataDirectory, 'requests.json')
+
+const readRequests = async () => {
+  try { return JSON.parse(await readFile(requestsFile, 'utf8')) }
+  catch (error) { if (error.code === 'ENOENT') return []; throw error }
+}
+const saveRequests = async requests => {
+  await mkdir(dataDirectory, { recursive: true })
+  await writeFile(requestsFile, JSON.stringify(requests, null, 2), 'utf8')
+}
+const cleanText = (value, max = 1000) => String(value || '').replace(/[<>]/g, '').trim().slice(0, max)
+const sendJson = (response, status, payload) => {
+  response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
+  response.end(JSON.stringify(payload))
+}
 
 const loginPage = error => `<!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -73,6 +90,40 @@ createServer((request, response) => {
   if (!hasValidCookie(request)) {
     response.writeHead(401, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' })
     response.end(loginPage(false))
+    return
+  }
+
+  if (pathname === '/api/requests' && request.method === 'GET') {
+    readRequests().then(requests => sendJson(response, 200, requests)).catch(() => sendJson(response, 500, { error: 'Anfragen konnten nicht geladen werden.' }))
+    return
+  }
+
+  if (pathname === '/api/requests' && request.method === 'POST') {
+    let body = ''
+    let tooLarge = false
+    request.on('data', chunk => {
+      if (!tooLarge) body += chunk
+      if (body.length > 100000) tooLarge = true
+    })
+    request.on('end', async () => {
+      if (tooLarge) return sendJson(response, 413, { error: 'Anfrage ist zu groß.' })
+      try {
+        const input = JSON.parse(body)
+        const entry = {
+          id: `LT-${Date.now().toString().slice(-7)}`,
+          name: cleanText(input.name, 120), email: cleanText(input.email, 180), phone: cleanText(input.phone, 60),
+          style: cleanText(input.style, 80) || 'Nicht angegeben', placement: cleanText(input.placement, 160),
+          size: cleanText(input.size, 80), idea: cleanText(input.idea, 4000),
+          consultation: Boolean(input.consultation), consultationType: cleanText(input.consultationType, 30),
+          date: new Date().toISOString(), status: 'Neu', source: 'form',
+        }
+        if (!entry.name || !entry.email || !entry.placement || !entry.size || !entry.idea) return sendJson(response, 400, { error: 'Bitte alle Pflichtfelder ausfüllen.' })
+        const requests = await readRequests()
+        requests.unshift(entry)
+        await saveRequests(requests.slice(0, 1000))
+        sendJson(response, 201, entry)
+      } catch { sendJson(response, 400, { error: 'Anfrage konnte nicht verarbeitet werden.' }) }
+    })
     return
   }
 

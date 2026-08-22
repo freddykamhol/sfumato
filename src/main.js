@@ -92,7 +92,7 @@ function appointmentView(day){
     </aside>
   </div>`
 }
-function requestsView() { return `<div class="admin-title"><div><span class="admin-kicker">INBOX</span><h2>Anfragen</h2><p>Alle eingehenden Tattoo-Projekte priorisiert an einem Ort.</p></div><button class="filter">Status: Alle ↓</button></div><div class="request-list request-inbox"><div class="list-head"><span>NAME / KONTAKT</span><span>STIL</span><span>ZEITAUFWAND</span><span>STATUS</span><span></span></div>${demoRequests.map((r,i)=>`<button class="request-row" data-request="${i}"><span><b>${r.name}</b><small>+49 151 24${i} 98${8-i} · ${r.id}</small></span><span><b>${i===0?'Microrealism':i===1?'Realistic':'Fineline'}</b><small>${r.motif}</small></span><span><b>${i===0?'4–5 Std.':i===1?'3 Std.':'2–3 Std.'}</b><small>geschätzt</small></span><span><i class="status ${r.status.replace(' ','-').toLowerCase()}">${r.status}</i></span><span class="row-arrow">↗</span></button>`).join('')}</div>` }
+function requestsView() { return `<div class="admin-title"><div><span class="admin-kicker">INBOX</span><h2>Anfragen</h2><p>Alle eingehenden Tattoo-Projekte priorisiert an einem Ort.</p></div><button class="filter">Status: Alle ↓</button></div><div class="request-list request-inbox"><div class="list-head"><span>NAME / KONTAKT</span><span>STIL</span><span>PROJEKT</span><span>STATUS</span><span></span></div>${demoRequests.map((r,i)=>`<button class="request-row" data-request="${i}"><span><b>${r.name}</b><small>${r.email || r.phone || 'Keine Kontaktdaten'} · ${r.id}</small></span><span><b>${r.style || (i===0?'Microrealism':i===1?'Realistic':'Fineline')}</b><small>${r.placement || r.motif}</small></span><span><b>${r.size || 'Größe offen'}</b><small>${r.consultation ? `Beratung: ${r.consultationType === 'phone' ? 'telefonisch' : 'im Studio'}` : 'Direkte Anfrage'}</small></span><span><i class="status ${r.status.replace(' ','-').toLowerCase()}">${r.status}</i></span><span class="row-arrow">↗</span></button>`).join('')}</div>` }
 function portfolioView() { return `<div class="admin-title"><div><h2>Referenzen</h2><p>Arbeiten für die öffentliche Galerie verwalten.</p></div><label class="admin-upload"><input id="portfolio-upload" type="file" accept="image/*" multiple>+ Neue Arbeit</label></div><div class="admin-gallery" id="admin-gallery">${portfolio.map(p=>`<article><img src="/studio-hero.png" style="object-position:${p.position}"><div><b>${p.title}</b><small>${p.type}</small></div><button aria-label="Referenz verwalten">···</button></article>`).join('')}</div>` }
 function settingsView(){return `<div class="admin-title"><div><span class="admin-kicker">SYSTEM</span><h2>Einstellungen</h2><p>Verbindungen und Verfügbarkeiten für die automatische Terminplanung.</p></div><button class="save-settings">Änderungen speichern</button></div><div class="settings-layout">
   <section class="integration-card"><div class="integration-icon">G</div><div><h3>Google Kalender</h3><p>Termine lesen, freie Zeiten prüfen und bestätigte Termine eintragen.</p></div><span class="connected">VERBUNDEN</span><button>Verbindung verwalten</button></section>
@@ -155,8 +155,31 @@ function initSite() {
     consultationChoice.hidden = !requested
     consultationTypes.forEach((option, index) => { option.required = requested && index === 0; if (!requested) option.checked = false })
   })
-  document.querySelector('#booking-form')?.addEventListener('submit', e => {
-    e.preventDefault(); const f = new FormData(e.currentTarget); demoRequests.unshift({id:`LT-${String(29+demoRequests.length).padStart(3,'0')}`,name:f.get('name'),motif:f.get('idea').slice(0,28),date:'Heute',status:'Neu'}); e.currentTarget.reset(); selectTrigger.firstChild.textContent='Bitte auswählen'; selectOptions.querySelectorAll('[role="option"]').forEach(item=>item.removeAttribute('aria-selected')); consultationChoice.hidden=true; consultationTypes.forEach(option=>option.required=false); document.querySelector('.form-message').textContent='Danke! Deine Anfrage ist angekommen. Wir melden uns persönlich bei dir.'; const toast=document.querySelector('.toast'); toast.textContent='Anfrage erfolgreich gesendet'; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),3500)
+  document.querySelector('#booking-form')?.addEventListener('submit', async e => {
+    e.preventDefault()
+    const form = e.currentTarget
+    const submit = form.querySelector('.submit')
+    const message = form.querySelector('.form-message')
+    const f = new FormData(form)
+    const payload = Object.fromEntries([...f.entries()].filter(([, value]) => typeof value === 'string'))
+    payload.consultation = f.get('consultation') === 'yes'
+    submit.disabled = true
+    submit.textContent = 'Anfrage wird gesendet …'
+    message.textContent = ''
+    try {
+      const response = await fetch('/api/requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error)
+      demoRequests.unshift(result)
+      form.reset(); selectTrigger.firstChild.textContent='Bitte auswählen'; selectOptions.querySelectorAll('[role="option"]').forEach(item=>item.removeAttribute('aria-selected')); consultationChoice.hidden=true; consultationTypes.forEach(option=>option.required=false)
+      message.textContent='Danke! Deine Anfrage ist angekommen. Wir melden uns persönlich bei dir.'
+      const toast=document.querySelector('.toast'); toast.textContent='Anfrage erfolgreich gesendet'; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),3500)
+    } catch (error) {
+      message.textContent = error.message || 'Die Anfrage konnte nicht gesendet werden. Bitte versuche es erneut.'
+    } finally {
+      submit.disabled = false
+      submit.innerHTML = `Anfrage senden ${arrow}`
+    }
   })
   const observer = new IntersectionObserver(entries => entries.forEach(x => x.isIntersecting && x.target.classList.add('visible')), {threshold:.12}); document.querySelectorAll('.reveal').forEach(el=>observer.observe(el))
   const film = document.querySelector('.film-frame video')
@@ -245,6 +268,20 @@ function initUploads(){ document.querySelector('#portfolio-upload')?.addEventLis
 function initAdmin() {
   const content=document.querySelector('#admin-content')
   const modal=document.querySelector('.admin-modal')
+  fetch('/api/requests', { headers: { Accept: 'application/json' } }).then(response => {
+    if (!response.ok) throw new Error('Anfragen konnten nicht geladen werden.')
+    return response.json()
+  }).then(requests => {
+    const examples = demoRequests.filter(request => request.source !== 'form')
+    demoRequests.splice(0, demoRequests.length, ...requests, ...examples)
+    const badge = document.querySelector('[data-view="requests"] b')
+    if (badge) badge.textContent = demoRequests.length
+    const activeView = document.querySelector('[data-view].active')?.dataset.view
+    if (activeView === 'requests') content.innerHTML = requestsView()
+    else if (activeView === 'dashboard') content.innerHTML = dashboardView()
+  }).catch(error => {
+    console.error(error)
+  })
   const openModal=html=>{modal.innerHTML=`<div class="modal-backdrop" data-close></div><section class="modal-sheet">${html}</section>`;modal.classList.add('open');modal.setAttribute('aria-hidden','false')}
   const closeModal=()=>{modal.classList.remove('open');modal.setAttribute('aria-hidden','true')}
   modal.addEventListener('click',e=>{
@@ -274,8 +311,8 @@ function initAdmin() {
     if(row){
       const r=demoRequests[row.dataset.request]
       content.innerHTML=`<div class="detail-top"><button class="detail-back">← Anfragen</button><div><button class="secondary-action" data-question>Rückfrage senden</button><button class="save-settings" data-proposals>Terminvorschläge erstellen</button></div></div>
-      <div class="request-hero"><div><span class="admin-kicker">${r.id} · EINGANG ${r.date.toUpperCase()}</span><h2>${r.name}</h2><p>+49 151 24${row.dataset.request} 98${8-row.dataset.request} · mara.k@example.de</p></div><i class="status neu">${r.status}</i></div>
-      <div class="request-detail-grid"><section class="project-card"><span>PROJEKTDETAILS</span><dl><div><dt>Stil</dt><dd>Microrealism</dd></div><div><dt>Körperstelle</dt><dd>Unterarm innen</dd></div><div><dt>Größe</dt><dd>ca. 15–20 cm</dd></div><div><dt>Zeitaufwand</dt><dd><select id="duration"><option>2 Stunden</option><option selected>4 Stunden</option><option>6 Stunden</option><option>Tagessitzung · 8 Std.</option></select></dd></div></dl><span>BESCHREIBUNG</span><p>Florales Motiv mit Pfingstrose und feinen Blättern. Organischer Verlauf entlang des Unterarms, kontrastreich aber nicht zu schwer.</p><div class="reference-thumb"><img src="/studio-hero.png"><span>Referenz_01.jpg</span></div></section>
+      <div class="request-hero"><div><span class="admin-kicker">${r.id} · EINGANG ${r.source === 'form' ? new Date(r.date).toLocaleDateString('de-DE') : r.date}</span><h2>${r.name}</h2><p>${r.phone || 'Keine Telefonnummer'} · ${r.email || 'Keine E-Mail-Adresse'}</p></div><i class="status neu">${r.status}</i></div>
+      <div class="request-detail-grid"><section class="project-card"><span>PROJEKTDETAILS</span><dl><div><dt>Stil</dt><dd>${r.style || 'Nicht angegeben'}</dd></div><div><dt>Körperstelle</dt><dd>${r.placement || 'Nicht angegeben'}</dd></div><div><dt>Größe</dt><dd>${r.size || 'Nicht angegeben'}</dd></div><div><dt>Beratung</dt><dd>${r.consultation ? (r.consultationType === 'phone' ? 'Telefonisch' : 'Persönlich im Studio') : 'Nicht gewünscht'}</dd></div></dl><span>BESCHREIBUNG</span><p>${r.idea || r.motif || 'Keine Beschreibung vorhanden.'}</p></section>
       <section class="timeline-card"><span>VERLAUF</span><div><i></i><p><b>Anfrage eingegangen</b><small>Heute · 09:42 Uhr</small></p></div><div><i></i><p><b>Automatische Bestätigung versendet</b><small>Heute · 09:43 Uhr</small></p></div><textarea placeholder="Interne Notiz hinzufügen …"></textarea></section></div>`
       content.querySelector('.detail-back').onclick=()=>content.innerHTML=requestsView()
     }
