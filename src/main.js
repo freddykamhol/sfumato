@@ -113,6 +113,16 @@ function initSite() {
   menuButton?.addEventListener('click', () => setMenu(!siteNav.classList.contains('open')))
   siteNav?.querySelectorAll('a').forEach(link => link.addEventListener('click', () => setMenu(false)))
   document.addEventListener('keydown', event => { if (event.key === 'Escape') setMenu(false) })
+  document.querySelectorAll('a[href^="#"]').forEach(link => link.addEventListener('click', event => {
+    const hash = link.getAttribute('href')
+    if (!hash || hash === '#' || hash === '#admin') return
+    const target = document.querySelector(hash)
+    if (!target) return
+    event.preventDefault()
+    setMenu(false)
+    history.pushState(null, '', hash)
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }))
   document.querySelectorAll('[data-protected-signature]').forEach(element => {
     element.addEventListener('contextmenu', event => event.preventDefault())
     element.addEventListener('dragstart', event => event.preventDefault())
@@ -339,4 +349,10 @@ function render(){
   }
   const admin=location.hash==='#admin'; document.querySelector('#app').innerHTML=admin?adminMarkup():siteMarkup(); admin?initAdmin():initSite(); window.scrollTo(0,0)
 }
-window.addEventListener('hashchange',render); render()
+window.addEventListener('hashchange', () => {
+  const wantsAdmin = location.hash === '#admin'
+  const showsAdmin = Boolean(document.querySelector('.admin-shell'))
+  if (wantsAdmin !== showsAdmin) return render()
+  const target = location.hash && document.querySelector(location.hash)
+  target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}); render()
