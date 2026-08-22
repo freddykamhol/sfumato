@@ -174,6 +174,29 @@ function initSite() {
         card.style.removeProperty('--tilt-y')
       })
     })
+
+    const footerSignature = document.querySelector('.footer-brand img')
+    const scheduleNeonFlicker = () => {
+      const delay = 2200 + Math.random() * 8500
+      setTimeout(() => {
+        if (!document.body.contains(footerSignature)) return
+        const flashes = 2 + Math.floor(Math.random() * 5)
+        const frames = [{ opacity: 1, filter: 'brightness(1) drop-shadow(0 0 5px #fff8) drop-shadow(0 0 18px #9e2c24cc)' }]
+        for (let index = 0; index < flashes; index++) {
+          const offset = (index + 1) / (flashes + 1)
+          const dimmed = Math.random() > .18
+          frames.push({
+            offset,
+            opacity: dimmed ? .18 + Math.random() * .45 : .02,
+            filter: `brightness(${dimmed ? .45 + Math.random() * .45 : .15}) drop-shadow(0 0 ${2 + Math.random() * 4}px #fff5) drop-shadow(0 0 ${5 + Math.random() * 9}px #9e2c2488)`,
+          })
+        }
+        frames.push({ opacity: 1, filter: 'brightness(1.08) drop-shadow(0 0 7px #fffc) drop-shadow(0 0 24px #9e2c24ee)' })
+        const flicker = footerSignature.animate(frames, { duration: 170 + Math.random() * 520, easing: 'steps(1, end)' })
+        flicker.finished.finally(scheduleNeonFlicker)
+      }, delay)
+    }
+    if (footerSignature) scheduleNeonFlicker()
   }
 }
 function initUploads(){ document.querySelector('#portfolio-upload')?.addEventListener('change', e=>[...e.target.files].forEach(file=>{const url=URL.createObjectURL(file); document.querySelector('#admin-gallery').insertAdjacentHTML('afterbegin',`<article><img src="${url}"><div><b>${file.name.replace(/\.[^.]+$/,'')}</b><small>Neu hochgeladen</small></div><button>···</button></article>`) })) }
