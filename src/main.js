@@ -44,17 +44,27 @@ function siteMarkup() {
         <div class="gallery">${portfolio.map((item, i) => `<article class="work-card reveal" style="--pos:${item.position}"><div class="work-image"><img src="/studio-hero.png" alt="${item.title}"><span>0${i+1}</span></div><div><h3>${item.title}</h3><p>${item.type}</p></div></article>`).join('')}</div>
       </section>
       <section id="about" class="about section-pad"><div class="about-image"><img src="/studio-hero.png" alt="Detail aus dem Tattoo-Studio Sfumato"></div><div class="about-copy"><p class="section-no">[ 03 — TATTOO SFUMATO ]</p><h2>Handwerk trifft<br><em>Haltung.</em></h2><p>Hier kommt die Geschichte von Tattoo Sfumato hin: Wie aus der ersten Skizze eine klare Handschrift wurde, welche Einflüsse die Arbeit prägen und warum jedes Projekt mit Respekt, Ruhe und einem offenen Gespräch beginnt.</p><blockquote>„Ein gutes Tattoo passt nicht nur zum Körper. Es fühlt sich an, als wäre es schon immer da gewesen.“</blockquote><div class="signature">Sfumato</div></div></section>
-      <section id="ablauf" class="process section-pad"><div class="section-head"><div><p class="section-no">[ 04 — DER ABLAUF ]</p><h2>Von der Idee<br><em>unter die Haut.</em></h2></div></div><div class="steps"><article><span>01</span><h3>Deine Anfrage</h3><p>Erzähl uns von deinem Motiv, der Stelle und deiner Wunschgröße. Referenzbilder helfen, müssen aber nicht perfekt sein.</p></article><article><span>02</span><h3>Konzept & Termin</h3><p>Wir klären Stil, Umfang und Budget. Danach erhältst du einen passenden Termin und alle Infos zur Vorbereitung.</p></article><article><span>03</span><h3>Dein Tattoo</h3><p>Am Termin finalisieren wir den Entwurf gemeinsam. Erst wenn alles passt, geht es los — ohne Zeitdruck.</p></article></div></section>
+      <section id="imagefilm" class="film-section section-pad">
+        <div class="film-heading"><div><p class="section-no">[ 04 — IMAGEFILM ]</p><h2>Inside<br><em>Sfumato.</em></h2></div><p>Ein Blick hinter die Kulissen — Atmosphäre, Handwerk und die Menschen, die Tattoo Sfumato prägen.</p></div>
+        <div class="film-frame reveal">
+          <img src="/studio-hero.png" alt="Vorschaubild für den kommenden Imagefilm von Tattoo Sfumato">
+          <div class="film-shade"></div>
+          <div class="film-status"><i></i><span>IMAGEFILM<br><b>COMING SOON</b></span></div>
+          <button class="film-play" type="button" aria-label="Hinweis zum Imagefilm"><span></span></button>
+          <div class="film-meta"><span>SFUMATO / EINBECK</span><span>00:00</span></div>
+        </div>
+      </section>
+      <section id="ablauf" class="process section-pad"><div class="section-head"><div><p class="section-no">[ 05 — DER ABLAUF ]</p><h2>Von der Idee<br><em>unter die Haut.</em></h2></div></div><div class="steps"><article><span>01</span><h3>Deine Anfrage</h3><p>Erzähl uns von deinem Motiv, der Stelle und deiner Wunschgröße. Referenzbilder helfen, müssen aber nicht perfekt sein.</p></article><article><span>02</span><h3>Konzept & Termin</h3><p>Wir klären Stil, Umfang und Budget. Danach erhältst du einen passenden Termin und alle Infos zur Vorbereitung.</p></article><article><span>03</span><h3>Dein Tattoo</h3><p>Am Termin finalisieren wir den Entwurf gemeinsam. Erst wenn alles passt, geht es los — ohne Zeitdruck.</p></article></div></section>
       <section class="studio-block section-pad">
         <div class="studio-word" aria-hidden="true">EINBECK</div>
         <div class="studio-grid">
-          <div><p class="section-no">[ 05 — DAS STUDIO ]</p><h2>Quiet space.<br><em>Bold work.</em></h2></div>
+          <div><p class="section-no">[ 06 — DAS STUDIO ]</p><h2>Quiet space.<br><em>Bold work.</em></h2></div>
           <div class="studio-card"><span>LOCATION</span><h3>Tattoo Sfumato<br>Einbeck</h3><p>Ein geschützter Raum für klare Ideen, konzentriertes Arbeiten und Tattoos mit Persönlichkeit.</p><a href="#termin">Termin anfragen <b>↗</b></a></div>
           <div class="studio-values"><p><span>01</span> Individuelle Entwürfe</p><p><span>02</span> Persönliche Beratung</p><p><span>03</span> Ruhige Atmosphäre</p><p><span>04</span> Hygienisches Arbeiten</p></div>
         </div>
       </section>
       <section id="termin" class="booking section-pad">
-        <div class="booking-intro"><p class="section-no">[ 05 — BOOKING ]</p><h2>Let’s create<br><em>something real.</em></h2><p>Je genauer deine Anfrage, desto besser können wir dein Projekt einschätzen. Wir melden uns in der Regel innerhalb von 3–5 Werktagen.</p><div class="contact-meta"><span>STUDIO</span><p>Tattoo Sfumato<br>Einbeck, Niedersachsen</p><span>KONTAKT</span><p>Direkt über das Anfrageformular<br>oder im Studio</p></div></div>
+        <div class="booking-intro"><p class="section-no">[ 07 — BOOKING ]</p><h2>Let’s create<br><em>something real.</em></h2><p>Je genauer deine Anfrage, desto besser können wir dein Projekt einschätzen. Wir melden uns in der Regel innerhalb von 3–5 Werktagen.</p><div class="contact-meta"><span>STUDIO</span><p>Tattoo Sfumato<br>Einbeck, Niedersachsen</p><span>KONTAKT</span><p>Direkt über das Anfrageformular<br>oder im Studio</p></div></div>
         <form id="booking-form" class="booking-form"><label>DEIN NAME<input required name="name" placeholder="Vor- und Nachname"></label><div class="form-row"><label>E-MAIL<input required type="email" name="email" placeholder="name@email.de"></label><label>TELEFON <small>OPTIONAL</small><input name="phone" placeholder="+49 ..."></label></div><div class="form-row"><label>STIL<select name="style"><option>Bitte auswählen</option><option>Fine Line</option><option>Blackwork</option><option>Floral / Organisch</option><option>Andere Richtung</option></select></label><label>KÖRPERSTELLE<input required name="placement" placeholder="z. B. Unterarm innen"></label></div><label>ERZÄHL UNS VON DEINER IDEE<textarea required name="idea" rows="4" placeholder="Motiv, Größe, Bedeutung, Wünsche …"></textarea></label><label class="upload"><input type="file" name="reference" accept="image/*" multiple><span class="plus">+</span><span><b>Referenzen hinzufügen</b><small>JPG, PNG · max. 10 MB</small></span></label><label class="consent"><input required type="checkbox"><span></span><small>Ich stimme der Verarbeitung meiner Angaben zur Bearbeitung der Anfrage zu.</small></label><button class="button primary submit" type="submit">Anfrage senden ${arrow}</button><p class="form-message" role="status"></p></form>
       </section>
     </main>
@@ -104,6 +114,12 @@ function initSite() {
     e.preventDefault(); const f = new FormData(e.currentTarget); demoRequests.unshift({id:`LT-${String(29+demoRequests.length).padStart(3,'0')}`,name:f.get('name'),motif:f.get('idea').slice(0,28),date:'Heute',status:'Neu'}); e.currentTarget.reset(); document.querySelector('.form-message').textContent='Danke! Deine Anfrage ist angekommen. Wir melden uns persönlich bei dir.'; const toast=document.querySelector('.toast'); toast.textContent='Anfrage erfolgreich gesendet'; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),3500)
   })
   const observer = new IntersectionObserver(entries => entries.forEach(x => x.isIntersecting && x.target.classList.add('visible')), {threshold:.12}); document.querySelectorAll('.reveal').forEach(el=>observer.observe(el))
+  document.querySelector('.film-play')?.addEventListener('click', () => {
+    const toast = document.querySelector('.toast')
+    toast.textContent = 'Der Sfumato Imagefilm folgt in Kürze.'
+    toast.classList.add('show')
+    setTimeout(() => toast.classList.remove('show'), 3000)
+  })
   const progress = document.querySelector('.scroll-progress')
   window.addEventListener('scroll', () => { const max=document.documentElement.scrollHeight-innerHeight; progress.style.transform=`scaleX(${max ? scrollY/max : 0})` }, {passive:true})
   const dot=document.querySelector('.cursor-dot')
