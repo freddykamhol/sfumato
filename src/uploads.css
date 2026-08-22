@@ -112,3 +112,12 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+.modal-upload.is-dragging { border-color: var(--red); background: #fff2ef; color: var(--red); }
+.message-file-list { display: grid; gap: 7px; margin-top: 10px; }
+.message-file-list[hidden] { display: none; }
+.message-file-list > div { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid #dedbd4; border-radius: 5px; background: #faf9f6; }
+.message-file-list span b,.message-file-list span small { display: block; }
+.message-file-list span b { max-width: 420px; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.message-file-list span small { margin-top: 3px; color: #8b867e; font-size: 9px; }
+.message-file-list button { display: grid; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 50%; background: #ece9e3; color: #6f6961; cursor: pointer; font-size: 17px; }
+.message-file-list button:hover { background: #f0d8d3; color: var(--red); }
