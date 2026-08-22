@@ -31,7 +31,7 @@ for (const entry of readdirSync(distRoot)) {
   }
 }
 
-for (const route of ['admin', 'admin/anfragen', 'admin/referenzen', 'admin/einstellungen', 'admin/einstellungen/schnittstellen', 'admin/einstellungen/benutzer', 'admin/einstellungen/kalender', 'admin/termin-neu', 'admin/terminakten', 'admin/kunden']) {
+for (const route of ['referenzen', 'admin', 'admin/anfragen', 'admin/referenzen', 'admin/einstellungen', 'admin/einstellungen/schnittstellen', 'admin/einstellungen/benutzer', 'admin/einstellungen/kalender', 'admin/termin-neu', 'admin/terminakten', 'admin/kunden']) {
   const routeRoot = join(projectRoot, route)
   mkdirSync(routeRoot, { recursive: true })
   copyFileSync(join(distRoot, 'index.html'), join(routeRoot, 'index.html'))

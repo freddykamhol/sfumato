@@ -10,6 +10,7 @@ import './customer-contact.css'
 import './modal-center.css'
 import './lightbox.css'
 import './admin-mobile.css'
+import './references.css'
 import signatureUrl from './assets/Signatur2.png?inline'
 
 const portfolio = [
@@ -24,7 +25,7 @@ const saveStudioSettings=async value=>{studioSettings=value;try{studioSettings=a
 const userRequest=async(method,id,payload)=>{try{return await apiJson(`/api/users${id?`/${id}`:''}`,{method,body:payload?JSON.stringify(payload):undefined})}catch{let users=JSON.parse(localStorage.getItem(USERS_LOCAL_KEY)||'[]');if(method==='POST'){const user={...payload,id:`USR-LOCAL-${Date.now()}`};users.push(user);localStorage.setItem(USERS_LOCAL_KEY,JSON.stringify(users));return user}if(method==='PATCH'){users=users.map(user=>user.id===id?{...user,...payload}:user);localStorage.setItem(USERS_LOCAL_KEY,JSON.stringify(users));return users.find(user=>user.id===id)}if(method==='DELETE'){localStorage.setItem(USERS_LOCAL_KEY,JSON.stringify(users.filter(user=>user.id!==id)));return{deleted:true}}}}
 const readLocalPortfolio=()=>{try{return JSON.parse(localStorage.getItem(LOCAL_PORTFOLIO_KEY)||'[]')}catch{return[]}}
 const saveLocalPortfolio=entries=>localStorage.setItem(LOCAL_PORTFOLIO_KEY,JSON.stringify(entries))
-const portfolioRequest=async(method,id,payload)=>{try{const response=await fetch(`/api/portfolio${id?`/${encodeURIComponent(id)}`:''}`,{method,headers:{'Content-Type':'application/json',Accept:'application/json'},body:payload?JSON.stringify(payload):undefined}),text=await response.text(),result=text?JSON.parse(text):null;if(response.ok)return result}catch{}const entries=readLocalPortfolio();if(method==='POST'){const entry={...payload,id:`REF-LOCAL-${Date.now().toString(36).toUpperCase()}`,image:payload.image,createdAt:new Date().toISOString(),order:entries.length};entries.push(entry);saveLocalPortfolio(entries);return entry}const index=entries.findIndex(item=>item.id===id);if(method==='PATCH'&&index>=0){entries[index]={...entries[index],...payload};saveLocalPortfolio(entries);return entries[index]}if(method==='DELETE'){saveLocalPortfolio(entries.filter(item=>item.id!==id));return{deleted:true}}throw new Error('Referenz konnte nicht gespeichert werden.')}
+const portfolioRequest=async(method,id,payload)=>{try{const response=await fetch(`/api/portfolio${id?`/${encodeURIComponent(id)}`:''}`,{method,headers:{'Content-Type':'application/json',Accept:'application/json'},body:payload?JSON.stringify(payload):undefined}),text=await response.text(),result=text?JSON.parse(text):null;if(response.ok)return result;if(response.status!==404)throw new Error(result?.error||'Referenz konnte nicht gespeichert werden.')}catch(error){if(error.message!=='Failed to fetch')throw error}const entries=readLocalPortfolio();if(payload?.featured&&entries.filter(item=>item.featured&&item.id!==id).length>=3)throw new Error('Es können maximal drei Highlights festgelegt werden.');if(method==='POST'){const entry={...payload,id:`REF-LOCAL-${Date.now().toString(36).toUpperCase()}`,image:payload.image,createdAt:new Date().toISOString(),order:entries.length};entries.push(entry);saveLocalPortfolio(entries);return entry}const index=entries.findIndex(item=>item.id===id);if(method==='PATCH'&&index>=0){entries[index]={...entries[index],...payload};saveLocalPortfolio(entries);return entries[index]}if(method==='DELETE'){saveLocalPortfolio(entries.filter(item=>item.id!==id));return{deleted:true}}throw new Error('Referenz konnte nicht gespeichert werden.')}
 const demoRequests = []
 const appointments = []
 const customerNotes = []
@@ -120,6 +121,10 @@ const adminWelcome = () => {
   return { greeting, date }
 }
 
+const publishedPortfolio=()=>portfolio.filter(item=>item.published!==false).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)||(b.order||0)-(a.order||0))
+const homepagePortfolio=()=>{const published=publishedPortfolio(),highlights=published.filter(item=>item.featured).slice(0,3);return [...highlights,...published.filter(item=>!highlights.some(highlight=>highlight.id===item.id))].slice(0,3)}
+const publicReferenceCard=(item,index)=>`<article class="work-card reveal" style="--pos:${item.position||'50% 50%'}"><div class="work-image"><img src="${item.image||'/studio-hero.png'}" alt="${item.title}"><span>${String(index+1).padStart(2,'0')}</span></div><div><h3>${item.title}</h3><p>${item.type||[item.style,item.placement].filter(Boolean).join(' · ')}</p>${item.description?`<small>${item.description}</small>`:''}</div></article>`
+
 function siteMarkup() {
   return `
     <div class="scroll-progress" aria-hidden="true"></div><div class="cursor-dot" aria-hidden="true"></div>
@@ -148,7 +153,7 @@ function siteMarkup() {
       <section class="statement section-pad"><p class="section-no">[ 01 — PHILOSOPHIE ]</p><h2>Kein Motiv von der Stange.<br><em>Ein Stück von dir.</em></h2><p>Jedes Tattoo beginnt mit Zuhören. Aus deiner Idee, unserer Handschrift und einem sorgfältigen Entwurf entsteht etwas, das nur einmal existiert.</p></section>
       <section id="arbeiten" class="work section-pad">
         <div class="section-head"><div><p class="section-no">[ 02 — AUSGEWÄHLTE ARBEITEN ]</p><h2>Selected <em>work.</em></h2></div><p>Realistic, Microrealism & Fineline — detailgenau, individuell und für deinen Körper entworfen.</p></div>
-        <div class="gallery">${portfolio.filter(item=>item.published!==false).sort((a,b)=>(a.order||0)-(b.order||0)).map((item, i) => `<article class="work-card reveal" style="--pos:${item.position||'50% 50%'}"><div class="work-image"><img src="${item.image||'/studio-hero.png'}" alt="${item.title}"><span>${String(i+1).padStart(2,'0')}</span></div><div><h3>${item.title}</h3><p>${item.type||[item.style,item.placement].filter(Boolean).join(' · ')}</p></div></article>`).join('')}</div>
+        <div class="gallery" data-home-references>${homepagePortfolio().map(publicReferenceCard).join('')}</div><div class="all-references-link"><a class="button primary" href="/referenzen/">Alle Referenzen ansehen ${arrow}</a></div>
       </section>
       <section id="about" class="about section-pad"><div class="about-image"><img src="/studio-hero.png" alt="Detail aus dem Tattoo-Studio Sfumato"></div><div class="about-copy"><p class="section-no">[ 03 — TATTOO SFUMATO ]</p><h2>Handwerk trifft<br><em>Haltung.</em></h2><p>Bei Tattoo Sfumato treffen professionelles Handwerk und eine familiäre Atmosphäre aufeinander. Wir arbeiten konzentriert und mit höchstem Anspruch — dabei bleibt der Umgang persönlich, locker und ganz ohne steife Studio-Vibes.</p><blockquote>„Sfumato bedeutet so viel wie ‚in Rauch aufgehen‘. Das ist eine alte Maltechnik, die mein Vater damals in seiner Kunstarbeit benutzt hat.“<cite>— Leon Zwezich</cite></blockquote><div class="signature" data-protected-signature><img src="${signatureUrl}" alt="Unterschrift von Leon Zwezich" draggable="false"></div></div></section>
       <section id="imagefilm" class="film-section section-pad">
@@ -169,6 +174,8 @@ function siteMarkup() {
     </main>
     <footer><div class="footer-brand" data-protected-signature><img src="${signatureUrl}" alt="Signatur von Leon Zwezich" draggable="false"></div><div><a href="#arbeiten">Arbeiten</a><a href="#about">Studio</a><a href="#termin">Booking</a><a href="/admin/">Admin</a></div><div class="social"><a href="https://www.instagram.com/tattoo_sfumato/?hl=de" target="_blank" rel="noopener noreferrer" aria-label="Tattoo Sfumato auf Instagram">${instagram}<span>@tattoo_sfumato</span></a></div><p>© 2026 Tattoo Sfumato · Einbeck · Impressum · Datenschutz</p></footer><div class="toast" role="status"></div>`
 }
+
+function allReferencesMarkup(){return `<div class="references-page"><header class="site-header references-header"><a class="brand" href="/" aria-label="Tattoo Sfumato Startseite"><span>TATTOO</span><i>·</i><span>SFUMATO</span></a><nav><a href="/">Startseite</a><a href="/#about">Das Studio</a><a href="/#termin">Anfrage</a></nav><a class="nav-cta" href="/#termin">Termin anfragen ${arrow}</a><button class="menu" aria-label="Menü öffnen" aria-expanded="false"><span></span><span></span></button></header><main><section class="references-hero section-pad"><p class="section-no">[ PORTFOLIO · SFUMATO ]</p><h1>Alle<br><em>Referenzen.</em></h1><p>Realistic, Microrealism und Fineline – ausgewählte Arbeiten aus dem Studio in Einbeck.</p></section><section class="all-references section-pad"><div class="gallery" data-all-references>${publishedPortfolio().map(publicReferenceCard).join('')}</div>${publishedPortfolio().length?'':'<div class="references-empty">Aktuell sind noch keine Arbeiten veröffentlicht.</div>'}</section></main><footer><div class="footer-brand"><img src="${signatureUrl}" alt="Tattoo Sfumato" draggable="false"></div><div><a href="/">Startseite</a><a href="/#termin">Projekt anfragen</a></div><div class="social">Tattoo Sfumato · Einbeck</div><p>© ${new Date().getFullYear()} Tattoo Sfumato</p></footer></div>`}
 
 function dashboardView(){
   const days=['Mo','Di','Mi','Do','Fr','Sa','So']
@@ -286,7 +293,7 @@ function adminViewMarkup(view) { return view==='requests'?requestsView():view===
 function adminMarkup() { const welcome=adminWelcome(); const view=currentAdminView(); return `<div class="admin-shell"><aside class="admin-side"><button class="mobile-nav-backdrop" data-mobile-nav-close aria-label="Menü schließen"></button><a class="brand" href="/"><span>TATTOO</span><i>·</i><span>SFUMATO</span></a><p>STUDIO OS</p><nav aria-label="Adminbereiche"><div class="mobile-nav-head"><span>STUDIO OS</span><b>Navigation</b><button data-mobile-nav-close aria-label="Menü schließen">×</button></div><a class="${view==='dashboard'?'active':''}" data-view="dashboard" href="/admin/"><span>⌂</span>Dashboard</a><a class="${view==='newAppointment'?'active':''}" data-view="newAppointment" href="/admin/termin-neu/"><span>＋</span>Neuer Termin</a><a class="${view==='appointmentFiles'?'active':''}" data-view="appointmentFiles" href="/admin/terminakten/"><span>01</span>Terminakten</a><a class="${view==='customers'?'active':''}" data-view="customers" href="/admin/kunden/"><span>02</span>Kunden</a><a class="${view==='requests'?'active':''}" data-view="requests" href="/admin/anfragen/"><span>03</span>Anfragen <b>${demoRequests.length}</b></a><a class="${view==='portfolio'?'active':''}" data-view="portfolio" href="/admin/referenzen/"><span>04</span>Referenzen</a><a class="${view==='settings'?'active':''}" data-view="settings" href="/admin/einstellungen/"><span>05</span>Einstellungen</a></nav><div class="admin-user"><div class="avatar">TS</div><span><b>Studio Sfumato</b><small>Administrator</small></span></div><a href="/" class="back">← Zur Website</a><div class="mobile-tabbar"><a class="${view==='dashboard'?'active':''}" href="/admin/"><span>⌂</span><small>Übersicht</small></a><a class="${view==='requests'?'active':''}" href="/admin/anfragen/"><span>◌</span><small>Anfragen</small><b>${demoRequests.length}</b></a><a class="${view==='newAppointment'?'active':''}" href="/admin/termin-neu/"><span>＋</span><small>Termin</small></a><button data-mobile-menu aria-expanded="false"><span>•••</span><small>Mehr</small></button></div></aside><main class="admin-main"><header><div><p>${welcome.date}</p><h1>${welcome.greeting}</h1></div><div class="header-actions"><button aria-label="Benachrichtigungen">●</button><div class="avatar">TS</div></div></header><section id="admin-content">${adminViewMarkup(view)}</section></main><div class="admin-modal" aria-hidden="true"></div></div>` }
 
 const mergePortfolio=entries=>{let local=readLocalPortfolio();if(!entries.length&&!local.length){local=portfolio.map(item=>({...item}));saveLocalPortfolio(local)}const merged=[...entries,...local].filter((item,index,all)=>all.findIndex(entry=>entry.id===item.id)===index);if(merged.length)portfolio.splice(0,portfolio.length,...merged)}
-const refreshPublicPortfolio=()=>{const gallery=document.querySelector('.gallery');if(!gallery)return;gallery.innerHTML=portfolio.filter(item=>item.published!==false).sort((a,b)=>(a.order||0)-(b.order||0)).map((item,index)=>`<article class="work-card reveal visible" style="--pos:${item.position||'50% 50%'}"><div class="work-image"><img src="${item.image||'/studio-hero.png'}" alt="${item.title}"><span>${String(index+1).padStart(2,'0')}</span></div><div><h3>${item.title}</h3><p>${item.type||[item.style,item.placement].filter(Boolean).join(' · ')}</p></div></article>`).join('')}
+const refreshPublicPortfolio=()=>{const gallery=document.querySelector('[data-home-references],[data-all-references]');if(!gallery)return;const entries=gallery.matches('[data-all-references]')?publishedPortfolio():homepagePortfolio();gallery.innerHTML=entries.map((item,index)=>publicReferenceCard(item,index).replace('class="work-card reveal"','class="work-card reveal visible"')).join('')}
 const loadPortfolio=()=>fetch('/api/portfolio',{headers:{Accept:'application/json'}}).then(async response=>{const text=await response.text();if(!response.ok||!text)throw new Error();return JSON.parse(text)}).catch(()=>[]).then(entries=>{mergePortfolio(entries);return portfolio})
 function initSite() {
   loadPortfolio().then(refreshPublicPortfolio)
@@ -843,13 +850,14 @@ function initLightbox(){
 
 function render(){
   const admin=location.pathname.replace(/\/+$/, '').startsWith('/admin')
+  const referencesPage=location.pathname.replace(/\/+$/, '')==='/referenzen'
   const serverAccess = document.cookie.split(';').some(cookie => cookie.trim() === 'sfumato_site_client=1')
   if (!admin && !serverAccess && sessionStorage.getItem(ACCESS_KEY) !== 'true') {
     document.querySelector('#app').innerHTML = passwordMarkup()
     initPasswordGate()
     return
   }
-  document.querySelector('#app').innerHTML=admin?adminMarkup():siteMarkup(); admin?initAdmin():initSite();initLightbox();window.scrollTo(0,0)
+  document.querySelector('#app').innerHTML=admin?adminMarkup():referencesPage?allReferencesMarkup():siteMarkup(); admin?initAdmin():initSite();initLightbox();window.scrollTo(0,0)
 }
 window.addEventListener('hashchange', () => {
   const target = location.hash && document.querySelector(location.hash)
