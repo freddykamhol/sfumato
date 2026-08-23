@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "node --test tests",
     "dev": "vite",
     "build": "node scripts/prepare-index.js && vite build && node scripts/publish-static.js",
     "preview": "vite preview",
@@ -14,8 +15,11 @@
     "vite": "^8.2.0"
   },
   "dependencies": {
-    "mailparser": "^3.9.15",
+    "mailparser": "3.9.15",
     "nodemailer": "^9.0.5",
     "qrcode": "^1.5.4"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.2"
   }
 }
