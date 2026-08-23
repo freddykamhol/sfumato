@@ -199,6 +199,17 @@
   display: none;
 }
 
+.email-context-message {
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid #ddd8d0;
+  border-radius: 8px;
+  background: #fff;
+}
+.email-context-message b { display: block; margin-bottom: 12px; }
+.email-context-message p { margin: 0; white-space: pre-wrap; line-height: 1.65; }
+.request-timeline article .secondary-action { margin-top: 10px; padding: 8px 11px; }
+
 /* Request cards use display:grid in multiple responsive stylesheets. Keep the
    native hidden state authoritative so the inbox filters can actually hide
    non-matching rows on desktop and mobile. */
