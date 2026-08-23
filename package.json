@@ -13,6 +13,7 @@
     "live": "npm install --include=dev --include=prod --no-audit --no-fund && npm run build && npm run optimize:references && node scripts/restart-passenger.js"
   },
   "devDependencies": {
+    "tsdav": "^2.3.1",
     "vite": "^8.2.0"
   },
   "dependencies": {

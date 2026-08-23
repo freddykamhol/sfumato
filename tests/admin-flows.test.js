@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawn } from 'node:child_process'
 import { createHmac } from 'node:crypto'
+import { createDAVClient } from 'tsdav'
 
 const waitForServer=async url=>{for(let attempt=0;attempt<60;attempt++){try{const response=await fetch(`${url}/health`);if(response.ok)return}catch{}await new Promise(resolve=>setTimeout(resolve,100))}throw new Error('Testserver ist nicht gestartet.')}
 const login=async url=>{const response=await fetch(`${url}/admin/login`,{method:'POST',redirect:'manual',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({username:'admin',password:'test-password-123'})});assert.equal(response.status,303);return response.headers.get('set-cookie').split(';')[0]}
@@ -65,6 +66,7 @@ test('CalDAV synchronisiert Termine bidirektional und archiviert Löschungen',as
   assert.equal((await fetch(`${url}/api/settings`,{method:'PUT',headers:adminHeaders,body:JSON.stringify(settings)})).status,200)
   const profile=await fetch(`${url}/api/caldav.mobileconfig`,{headers:{Cookie:cookie}});assert.equal(profile.status,200);assert.match(profile.headers.get('content-type'),/application\/x-apple-aspen-config/);const profileText=await profile.text();assert.match(profileText,/<key>CalDAVHostName<\/key>/);assert.match(profileText,/<string>studio<\/string>/)
   const authorization=`Basic ${Buffer.from('studio:very-secure-calendar-password').toString('base64')}`,headers={Authorization:authorization}
+  const davClient=await createDAVClient({serverUrl:`${url}/caldav/`,credentials:{username:'studio',password:'very-secure-calendar-password'},authMethod:'Basic',defaultAccountType:'caldav'}),davCalendars=await davClient.fetchCalendars();assert.equal(davCalendars.length,1);assert.match(davCalendars[0].displayName,/Tattoo Sfumato/)
   assert.equal((await fetch(`${url}/caldav/`,{method:'OPTIONS',headers})).status,204)
   const discovery=await fetch(`${url}/caldav/`,{method:'PROPFIND',headers:{...headers,Depth:'1'}})
   assert.equal(discovery.status,207);assert.match(await discovery.text(),/calendar-home-set/)

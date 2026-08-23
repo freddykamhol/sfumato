@@ -145,7 +145,6 @@ const caldavMobileConfig=(config,host)=>`<?xml version="1.0" encoding="UTF-8"?>
 <key>CalDAVHostName</key><string>${xmlEscape(host)}</string>
 <key>CalDAVPassword</key><string>${xmlEscape(config.password)}</string>
 <key>CalDAVPort</key><integer>443</integer>
-<key>CalDAVPrincipalURL</key><string>/caldav/principal/</string>
 <key>CalDAVUseSSL</key><true/>
 <key>CalDAVUsername</key><string>${xmlEscape(config.username)}</string>
 <key>PayloadDescription</key><string>Bidirektionaler Studio-Kalender</string>
@@ -225,24 +224,24 @@ createServer(async (request, response) => {
   await adminBootstrap
   const adminUser=await adminUserFromRequest(request)
 
-  if(pathname==='/.well-known/caldav'||(pathname==='/'&&request.method==='PROPFIND')){const publicUrl=String(process.env.PUBLIC_URL||'https://tattoosfumato.de').replace(/\/$/,'');response.writeHead(301,{Location:`${publicUrl}/caldav/`});response.end();return}
-  if(pathname.startsWith('/caldav')){
+  const caldavPath=pathname==='/.well-known/caldav'||(pathname==='/'&&['OPTIONS','PROPFIND','REPORT'].includes(request.method))?'/caldav/':pathname
+  if(caldavPath.startsWith('/caldav')){
     const settings=await readSettings(),config=settings.calendar?.caldav
     if(!caldavAuthorized(request,config)){response.writeHead(401,{'WWW-Authenticate':'Basic realm="Tattoo Sfumato Kalender", charset="UTF-8"','Cache-Control':'no-store'});response.end();return}
     response.setHeader('DAV','1, 3, calendar-access');response.setHeader('Allow','OPTIONS, PROPFIND, REPORT, GET, HEAD, PUT, DELETE')
     if(request.method==='OPTIONS'){response.writeHead(204);response.end();return}
     const baseUrl=String(process.env.PUBLIC_URL||'https://tattoosfumato.de').replace(/\/$/,'')
     if(request.method==='PROPFIND'){
-      const isCalendar=/^\/caldav\/calendar\/?$/.test(pathname),isPrincipal=pathname.startsWith('/caldav/principal'),appointments=isCalendar?(await readAppointments()).filter(item=>!isInactiveAppointment(item)):[]
-      const eventResources=appointments.map(item=>`<d:response><d:href>/caldav/calendar/${encodeURIComponent(item.id)}.ics</d:href><d:propstat><d:prop><d:getetag>${xmlEscape(appointmentEtag(item))}</d:getetag><d:getcontenttype>text/calendar; charset=utf-8</d:getcontenttype><d:resourcetype/></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`).join(''),calendarResource=pathname==='/caldav/'?'<d:response><d:href>/caldav/calendar/</d:href><d:propstat><d:prop><d:displayname>Tattoo Sfumato Termine</d:displayname><d:resourcetype><d:collection/><c:calendar/></d:resourcetype><c:supported-calendar-component-set><c:comp name="VEVENT"/></c:supported-calendar-component-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>':''
+      const isCalendar=/^\/caldav\/calendar\/?$/.test(caldavPath),isPrincipal=caldavPath.startsWith('/caldav/principal'),appointments=isCalendar?(await readAppointments()).filter(item=>!isInactiveAppointment(item)):[]
+      const eventResources=appointments.map(item=>`<d:response><d:href>/caldav/calendar/${encodeURIComponent(item.id)}.ics</d:href><d:propstat><d:prop><d:getetag>${xmlEscape(appointmentEtag(item))}</d:getetag><d:getcontenttype>text/calendar; charset=utf-8</d:getcontenttype><d:resourcetype/></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`).join(''),calendarResource=caldavPath==='/caldav/'?'<d:response><d:href>/caldav/calendar/</d:href><d:propstat><d:prop><d:displayname>Tattoo Sfumato Termine</d:displayname><d:resourcetype><d:collection/><c:calendar/></d:resourcetype><c:supported-calendar-component-set><c:comp name="VEVENT"/></c:supported-calendar-component-set></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>':''
       const principal=`<d:current-user-principal><d:href>/caldav/principal/</d:href></d:current-user-principal><d:principal-URL><d:href>/caldav/principal/</d:href></d:principal-URL><c:calendar-user-address-set><d:href>mailto:${xmlEscape(config.username)}</d:href></c:calendar-user-address-set>`,home=`<c:calendar-home-set><d:href>/caldav/</d:href></c:calendar-home-set>`,privileges='<d:current-user-privilege-set><d:privilege><d:read/></d:privilege><d:privilege><d:write/></d:privilege><d:privilege><d:write-content/></d:privilege></d:current-user-privilege-set>',reports='<d:supported-report-set><d:supported-report><d:report><c:calendar-query/></d:report></d:supported-report><d:supported-report><d:report><c:calendar-multiget/></d:report></d:supported-report></d:supported-report-set>',collection=isCalendar?'<d:collection/><c:calendar/>':isPrincipal?'<d:collection/><d:principal/>':'<d:collection/>',display=isPrincipal?'Tattoo Sfumato Studio':isCalendar?'Tattoo Sfumato Termine':'Tattoo Sfumato CalDAV'
-      sendXml(response,207,`<?xml version="1.0" encoding="UTF-8"?><d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:response><d:href>${xmlEscape(pathname.endsWith('/')?pathname:`${pathname}/`)}</d:href><d:propstat><d:prop><d:displayname>${display}</d:displayname><d:resourcetype>${collection}</d:resourcetype>${principal}${home}${privileges}${reports}${isCalendar?'<c:supported-calendar-component-set><c:comp name="VEVENT"/></c:supported-calendar-component-set>':''}</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>${calendarResource}${eventResources}</d:multistatus>`);return
+      sendXml(response,207,`<?xml version="1.0" encoding="UTF-8"?><d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:response><d:href>${xmlEscape(caldavPath.endsWith('/')?caldavPath:`${caldavPath}/`)}</d:href><d:propstat><d:prop><d:displayname>${display}</d:displayname><d:resourcetype>${collection}</d:resourcetype>${principal}${home}${privileges}${reports}${isCalendar?'<c:supported-calendar-component-set><c:comp name="VEVENT"/></c:supported-calendar-component-set>':''}</d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>${calendarResource}${eventResources}</d:multistatus>`);return
     }
-    if(request.method==='REPORT'&&pathname.startsWith('/caldav/calendar')){
+    if(request.method==='REPORT'&&caldavPath.startsWith('/caldav/calendar')){
       const appointments=(await readAppointments()).filter(item=>!isInactiveAppointment(item)),resources=appointments.map(item=>`<d:response><d:href>/caldav/calendar/${encodeURIComponent(item.id)}.ics</d:href><d:propstat><d:prop><d:getetag>${xmlEscape(appointmentEtag(item))}</d:getetag><c:calendar-data>${xmlEscape(appointmentIcs(item))}</c:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`).join('')
       sendXml(response,207,`<?xml version="1.0" encoding="UTF-8"?><d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">${resources}</d:multistatus>`);return
     }
-    const resourceMatch=pathname.match(/^\/caldav\/calendar\/([^/]+)\.ics$/)
+    const resourceMatch=caldavPath.match(/^\/caldav\/calendar\/([^/]+)\.ics$/)
     if(resourceMatch&&['GET','HEAD'].includes(request.method)){const id=decodeURIComponent(resourceMatch[1]),item=(await readAppointments()).find(entry=>entry.id===id&&!isInactiveAppointment(entry));if(!item){response.writeHead(404);response.end();return}const body=appointmentIcs(item);response.writeHead(200,{'Content-Type':'text/calendar; charset=utf-8','ETag':appointmentEtag(item),'Content-Length':Buffer.byteLength(body),'Cache-Control':'no-store'});response.end(request.method==='HEAD'?'':body);return}
     if(resourceMatch&&request.method==='PUT'){
       let body='';for await(const chunk of request){body+=chunk;if(body.length>1000000){response.writeHead(413);response.end();return}}const parsed=parseCalendarEvent(body);if(!parsed){response.writeHead(400,{'Content-Type':'text/plain; charset=utf-8'});response.end('Ungültiger VEVENT: DTSTART und DTEND werden benötigt.');return}
