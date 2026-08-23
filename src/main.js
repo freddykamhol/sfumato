@@ -33,16 +33,11 @@ const readLocalAppointments = () => {
 }
 const saveLocalAppointment = appointment => localStorage.setItem(LOCAL_APPOINTMENTS_KEY, JSON.stringify([...readLocalAppointments(), appointment].slice(-1000)))
 const createAppointment = async payload => {
-  try {
-    const response=await fetch('/api/appointments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-    const text=await response.text()
-    let result
-    try { result=text?JSON.parse(text):null } catch { result=null }
-    if(response.ok&&result?.id)return result
-  } catch {}
-  const localAppointment={...payload,id:`APT-LOCAL-${Date.now().toString(36).toUpperCase()}`,createdAt:new Date().toISOString(),source:'local'}
-  saveLocalAppointment(localAppointment)
-  return localAppointment
+  const response=await fetch('/api/appointments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+  const text=await response.text();let result=null
+  try{result=text?JSON.parse(text):null}catch{}
+  if(!response.ok||!result?.id)throw new Error(result?.error||`Termin konnte nicht gespeichert werden (${response.status}).`)
+  return result
 }
 const updateAppointment = async (appointment,payload) => {
   Object.assign(appointment,payload)
@@ -104,7 +99,7 @@ const markLocalRequestRead = id => {
 }
 const requestReference=request=>request?.reference||`#${String(request?.id||'ANFRAGE').replace(/[^a-z0-9]/gi,'').slice(-6).toUpperCase()}`
 const updateRequest=async(request,payload)=>{Object.assign(request,payload);try{const response=await fetch(`/api/requests/${encodeURIComponent(request.id)}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const text=await response.text(),result=text?JSON.parse(text):null;if(response.ok&&result?.id){Object.assign(request,result);return request}}catch{}const local=readLocalRequests(),index=local.findIndex(item=>item.id===request.id);if(index>=0)local[index]={...local[index],...payload};else local.unshift({...request,...payload});localStorage.setItem(LOCAL_REQUESTS_KEY,JSON.stringify(local.slice(0,250)));return request}
-const sortRequests = requests => requests.sort((a,b) => Number(Boolean(a.readAt))-Number(Boolean(b.readAt)) || new Date(b.date)-new Date(a.date))
+const sortRequests = requests => requests.sort((a,b) => Number(Boolean(a.readAt))-Number(Boolean(b.readAt)) || new Date(b.activityAt||b.date)-new Date(a.activityAt||a.date))
 const arrow = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
 const instagram = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>'
 const adminWelcome = () => {
@@ -643,12 +638,13 @@ function initAdmin() {
     const form=e.target.closest('[data-appointment-form]')
     if(!form)return
     e.preventDefault()
+    const preview=Object.fromEntries(new FormData(form)),previewStart=new Date(preview.start);if(!confirm(`Termin verbindlich buchen?\n\n${preview.clientName||'Kunde'}\n${new Intl.DateTimeFormat('de-DE',{dateStyle:'full',timeStyle:'short'}).format(previewStart)} Uhr\n\nDer Kunde erhält anschließend automatisch eine Buchungsbestätigung per E-Mail.`))return
     const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Wird gespeichert …'
     try{
       const payload=Object.fromEntries(new FormData(form))
       payload.start=new Date(payload.start).toISOString();payload.end=new Date(payload.end).toISOString()
       const result=await createAppointment(payload)
-      appointments.push(result);appointments.sort((a,b)=>new Date(a.start)-new Date(b.start));if(payload.requestId){const requestEntry=demoRequests.find(item=>item.id===payload.requestId);if(requestEntry)await updateRequest(requestEntry,{bookedAppointmentId:result.id,status:'Bestätigt',timeline:[...(requestEntry.timeline||[]),{title:'Termin manuell gebucht',text:new Intl.DateTimeFormat('de-DE',{dateStyle:'full',timeStyle:'short'}).format(new Date(result.start)),createdAt:new Date().toISOString()}]});location.href=`/admin/terminakten/?termin=${encodeURIComponent(result.id)}`;return}closeModal();content.innerHTML=dashboardView()
+      appointments.push(result);appointments.sort((a,b)=>new Date(a.start)-new Date(b.start));if(payload.email&&!result.confirmationEmailSent)alert(`Der Termin wurde gebucht, aber die Bestätigungsmail konnte nicht versendet werden.\n\n${result.confirmationEmailError||'Bitte SMTP-Konfiguration prüfen.'}`);if(payload.requestId){const requestEntry=demoRequests.find(item=>item.id===payload.requestId);if(requestEntry)await updateRequest(requestEntry,{bookedAppointmentId:result.id,status:'Bestätigt',timeline:[...(requestEntry.timeline||[]),{title:'Termin manuell gebucht',text:new Intl.DateTimeFormat('de-DE',{dateStyle:'full',timeStyle:'short'}).format(new Date(result.start)),createdAt:new Date().toISOString()}]});location.href=`/admin/terminakten/?termin=${encodeURIComponent(result.id)}`;return}closeModal();content.innerHTML=dashboardView()
     }catch(error){form.querySelector('.modal-form-error').textContent=error.message;submit.disabled=false;submit.textContent='Termin speichern →'}
   })
   modal.addEventListener('submit',async e=>{const form=e.target.closest('[data-reference-form]');if(!form)return;e.preventDefault();const submit=form.querySelector('[type="submit"]'),data=Object.fromEntries(new FormData(form)),id=form.dataset.referenceId;submit.disabled=true;submit.textContent='Wird gespeichert …';try{data.published=form.elements.published.checked;data.featured=form.elements.featured.checked;if(!id){const file=form.elements.image.files[0];if(!file)throw new Error('Bitte ein Bild auswählen.');data.image=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)});const entry=await portfolioRequest('POST','',data);portfolio.push(entry)}else{const entry=await portfolioRequest('PATCH',id,data),index=portfolio.findIndex(item=>item.id===id);if(index>=0)portfolio[index]={...portfolio[index],...entry}}closeModal();content.innerHTML=portfolioView()}catch(error){form.querySelector('.modal-form-error').textContent=error.message||'Referenz konnte nicht gespeichert werden.';submit.disabled=false;submit.textContent='Referenz speichern →'}})
@@ -657,11 +653,12 @@ function initAdmin() {
     const form=e.target.closest('[data-appointment-form]')
     if(!form)return
     e.preventDefault()
+    const preview=Object.fromEntries(new FormData(form)),previewStart=new Date(preview.start);if(!confirm(`Termin verbindlich buchen?\n\n${preview.clientName||'Kunde'}\n${new Intl.DateTimeFormat('de-DE',{dateStyle:'full',timeStyle:'short'}).format(previewStart)} Uhr\n\nDer Kunde erhält anschließend automatisch eine Buchungsbestätigung per E-Mail.`))return
     const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='Wird gespeichert …'
     try{
       const payload=Object.fromEntries(new FormData(form));payload.start=new Date(payload.start).toISOString();payload.end=new Date(payload.end).toISOString()
       const result=await createAppointment(payload)
-      appointments.push(result);appointments.sort((a,b)=>new Date(a.start)-new Date(b.start));location.href=`/admin/terminakten/?termin=${encodeURIComponent(result.id)}`
+      appointments.push(result);appointments.sort((a,b)=>new Date(a.start)-new Date(b.start));if(payload.email&&!result.confirmationEmailSent)alert(`Der Termin wurde gebucht, aber die Bestätigungsmail konnte nicht versendet werden.\n\n${result.confirmationEmailError||'Bitte SMTP-Konfiguration prüfen.'}`);location.href=`/admin/terminakten/?termin=${encodeURIComponent(result.id)}`
     }catch(error){form.querySelector('.modal-form-error').textContent=error.message;submit.disabled=false;submit.textContent='Termin speichern →'}
   })
   content.addEventListener('submit', async e => {
@@ -734,7 +731,7 @@ function initAdmin() {
       return
     }
     const proposalBooking=e.target.closest('[data-book-proposal]')
-    if(proposalBooking){const requestEntry=demoRequests.find(item=>item.id===proposalBooking.dataset.requestId);if(!requestEntry)return;const start=new Date(proposalBooking.dataset.bookProposal),duration=Math.max(.5,Number(requestEntry.estimatedHours)||4),result=await createAppointment({clientName:requestEntry.name,email:requestEntry.email,phone:requestEntry.phone,style:requestEntry.style,placement:requestEntry.placement,notes:requestEntry.idea,requestId:requestEntry.id,start:start.toISOString(),end:new Date(start.getTime()+duration*3600000).toISOString()});appointments.push(result);await updateRequest(requestEntry,{bookedAppointmentId:result.id,status:'Bestätigt',timeline:[...(requestEntry.timeline||[]),{title:'Termin gebucht',text:new Intl.DateTimeFormat('de-DE',{dateStyle:'full',timeStyle:'short'}).format(start),createdAt:new Date().toISOString()}]});location.href=`/admin/terminakten/?termin=${encodeURIComponent(result.id)}`;return}
+    if(proposalBooking){const requestEntry=demoRequests.find(item=>item.id===proposalBooking.dataset.requestId);if(!requestEntry)return;const start=new Date(proposalBooking.dataset.bookProposal),duration=Math.max(.5,Number(requestEntry.estimatedHours)||4);if(!confirm(`Diesen Termin verbindlich buchen?\n\n${requestEntry.name}\n${new Intl.DateTimeFormat('de-DE',{dateStyle:'full',timeStyle:'short'}).format(start)} Uhr\n\nDer Kunde erhält anschließend automatisch eine Buchungsbestätigung per E-Mail.`))return;proposalBooking.disabled=true;const result=await createAppointment({clientName:requestEntry.name,email:requestEntry.email,phone:requestEntry.phone,style:requestEntry.style,placement:requestEntry.placement,notes:requestEntry.idea,requestId:requestEntry.id,start:start.toISOString(),end:new Date(start.getTime()+duration*3600000).toISOString()});appointments.push(result);if(requestEntry.email&&!result.confirmationEmailSent)alert(`Der Termin wurde gebucht, aber die Bestätigungsmail konnte nicht versendet werden.\n\n${result.confirmationEmailError||'Bitte SMTP-Konfiguration prüfen.'}`);await updateRequest(requestEntry,{bookedAppointmentId:result.id,status:'Bestätigt',timeline:[...(requestEntry.timeline||[]),{title:'Termin gebucht',text:new Intl.DateTimeFormat('de-DE',{dateStyle:'full',timeStyle:'short'}).format(start),createdAt:new Date().toISOString()}]});location.href=`/admin/terminakten/?termin=${encodeURIComponent(result.id)}`;return}
     const manualBooking=e.target.closest('[data-manual-booking]')
     if(manualBooking){const requestEntry=demoRequests.find(item=>item.id===manualBooking.dataset.manualBooking);if(!requestEntry)return;const start=new Date();start.setDate(start.getDate()+7);start.setMinutes(0,0,0);const duration=Math.max(.5,Number(requestEntry.estimatedHours)||4),end=new Date(start.getTime()+duration*3600000);openModal(`<button class="modal-close" data-close>×</button><span class="admin-kicker">${requestReference(requestEntry)} · TERMIN BUCHEN</span><h2>Termin manuell erstellen</h2><form data-appointment-form><input type="hidden" name="requestId" value="${requestEntry.id}"><label>NAME<input required name="clientName" value="${requestEntry.name}"></label><div class="smtp-grid"><label>BEGINN<input required type="datetime-local" name="start" value="${localDateTime(start)}"></label><label>ENDE<input required type="datetime-local" name="end" value="${localDateTime(end)}"></label><label>STIL<input name="style" value="${requestEntry.style||''}"></label><label>KÖRPERSTELLE<input name="placement" value="${requestEntry.placement||''}"></label></div><input type="hidden" name="email" value="${requestEntry.email||''}"><input type="hidden" name="phone" value="${requestEntry.phone||''}"><label>NOTIZ<textarea name="notes" rows="5">${requestEntry.idea||''}</textarea></label><p class="modal-form-error"></p><button class="save-settings modal-send" type="submit">Termin erstellen und buchen →</button></form>`);return}
     if(e.target.closest('[data-new-appointment]')){
