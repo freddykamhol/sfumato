@@ -199,6 +199,14 @@
   display: none;
 }
 
+/* Request cards use display:grid in multiple responsive stylesheets. Keep the
+   native hidden state authoritative so the inbox filters can actually hide
+   non-matching rows on desktop and mobile. */
+.request-inbox .request-row[hidden],
+.request-inbox .filter-empty[hidden] {
+  display: none !important;
+}
+
 .customer-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 112px;
