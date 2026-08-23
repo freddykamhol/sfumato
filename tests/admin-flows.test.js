@@ -58,7 +58,7 @@ test('Absage behält Terminakte, entfernt Kalenderbezug und öffnet Anfrage erne
 
 test('CalDAV synchronisiert Termine bidirektional und archiviert Löschungen',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'sfumato-caldav-')),port=40000+Math.floor(Math.random()*1000),url=`http://127.0.0.1:${port}`
-  const child=spawn(process.execPath,['app.js'],{cwd:process.cwd(),env:{...process.env,PORT:String(port),DATA_DIRECTORY:directory,ADMIN_SESSION_SECRET:'caldav-test-secret',ADMIN_INITIAL_PASSWORD:'test-password-123',PUBLIC_URL:url},stdio:'ignore'})
+  const child=spawn(process.execPath,['app.js'],{cwd:process.cwd(),env:{...process.env,PORT:String(port),DATA_DIRECTORY:directory,ADMIN_SESSION_SECRET:'caldav-test-secret',ADMIN_INITIAL_PASSWORD:'test-password-123',PUBLIC_URL:url,MOBILECONFIG_ALLOW_UNSIGNED:'true'},stdio:'ignore'})
   t.after(async()=>{child.kill();await rm(directory,{recursive:true,force:true})})
   await waitForServer(url)
   const cookie=await login(url),adminHeaders={Cookie:cookie,'Content-Type':'application/json'},settings=await fetch(`${url}/api/settings`,{headers:{Cookie:cookie}}).then(response=>response.json())
@@ -68,10 +68,10 @@ test('CalDAV synchronisiert Termine bidirektional und archiviert Löschungen',as
   const authorization=`Basic ${Buffer.from('studio:very-secure-calendar-password').toString('base64')}`,headers={Authorization:authorization}
   const davClient=await createDAVClient({serverUrl:`${url}/caldav/`,credentials:{username:'studio',password:'very-secure-calendar-password'},authMethod:'Basic',defaultAccountType:'caldav'}),davCalendars=await davClient.fetchCalendars();assert.equal(davCalendars.length,1);assert.match(davCalendars[0].displayName,/Tattoo Sfumato/)
   const discoveryBody='<?xml version="1.0"?><d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><d:current-user-principal/><c:calendar-home-set/><d:resourcetype/><d:supported-report-set/></d:prop></d:propfind>'
-  for(const path of ['/','/.well-known/caldav','/caldav/','/caldav/principal/','/caldav/calendar/']){const response=await fetch(`${url}${path}`,{method:'PROPFIND',headers:{...headers,Depth:path==='/caldav/'?'1':'0','Content-Type':'application/xml'},body:discoveryBody});assert.equal(response.status,207,`PROPFIND ${path}`);const xml=await response.text();assert.match(xml,/multistatus/);assert.equal(response.headers.get('location'),null)}
+  for(const path of ['/','/.well-known/caldav','/caldav/','/caldav/principal/','/caldav/calendar/','/caldav/principals/studio/','/caldav/calendars/studio/','/caldav/calendars/studio/main/']){const response=await fetch(`${url}${path}`,{method:'PROPFIND',headers:{...headers,Depth:path==='/caldav/calendars/studio/'?'1':'0','Content-Type':'application/xml'},body:discoveryBody});assert.equal(response.status,207,`PROPFIND ${path}`);const xml=await response.text();assert.match(xml,/multistatus/);assert.equal(response.headers.get('location'),null)}
   const sync=await fetch(`${url}/caldav/calendar/`,{method:'REPORT',headers:{...headers,Depth:'1','Content-Type':'application/xml'},body:'<?xml version="1.0"?><d:sync-collection xmlns:d="DAV:"><d:sync-token/><d:sync-level>1</d:sync-level><d:prop><d:getetag/></d:prop></d:sync-collection>'});assert.equal(sync.status,207);assert.match(await sync.text(),/sync-token/)
   assert.equal((await fetch(`${url}/caldav/`,{method:'OPTIONS',headers})).status,204)
-  const discovery=await fetch(`${url}/caldav/`,{method:'PROPFIND',headers:{...headers,Depth:'1'}})
+  const discovery=await fetch(`${url}/caldav/principals/studio/`,{method:'PROPFIND',headers:{...headers,Depth:'0'}})
   assert.equal(discovery.status,207);assert.match(await discovery.text(),/calendar-home-set/)
   const firstStart=new Date(Date.now()+20*86400000);firstStart.setUTCHours(9,0,0,0);const secondStart=new Date(firstStart.getTime()+86400000)
   const event=start=>`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:device-event-1\r\nDTSTART:${start.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}\r\nDTEND:${new Date(start.getTime()+3600000).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}\r\nSUMMARY:Endgerät Termin\r\nDESCRIPTION:Vom Smartphone erstellt\r\nEND:VEVENT\r\nEND:VCALENDAR`
