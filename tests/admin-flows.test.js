@@ -53,3 +53,30 @@ test('Absage behält Terminakte, entfernt Kalenderbezug und öffnet Anfrage erne
   const calendarAfterMove=await fetch(`${url}/api/calendar.ics?token=${settings.calendar.webcalToken}`).then(response=>response.text())
   assert.equal(calendarAfterMove.includes(`UID:${replacement.id}@sfumato`),false)
 })
+
+test('CalDAV synchronisiert Termine bidirektional und archiviert Löschungen',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'sfumato-caldav-')),port=40000+Math.floor(Math.random()*1000),url=`http://127.0.0.1:${port}`
+  const child=spawn(process.execPath,['app.js'],{cwd:process.cwd(),env:{...process.env,PORT:String(port),DATA_DIRECTORY:directory,ADMIN_SESSION_SECRET:'caldav-test-secret',ADMIN_INITIAL_PASSWORD:'test-password-123',PUBLIC_URL:url},stdio:'ignore'})
+  t.after(async()=>{child.kill();await rm(directory,{recursive:true,force:true})})
+  await waitForServer(url)
+  const cookie=await login(url),adminHeaders={Cookie:cookie,'Content-Type':'application/json'},settings=await fetch(`${url}/api/settings`,{headers:{Cookie:cookie}}).then(response=>response.json())
+  settings.calendar.caldav={enabled:true,username:'studio',password:'very-secure-calendar-password'}
+  assert.equal((await fetch(`${url}/api/settings`,{method:'PUT',headers:adminHeaders,body:JSON.stringify(settings)})).status,200)
+  const authorization=`Basic ${Buffer.from('studio:very-secure-calendar-password').toString('base64')}`,headers={Authorization:authorization}
+  assert.equal((await fetch(`${url}/caldav/`,{method:'OPTIONS',headers})).status,204)
+  const discovery=await fetch(`${url}/caldav/`,{method:'PROPFIND',headers:{...headers,Depth:'1'}})
+  assert.equal(discovery.status,207);assert.match(await discovery.text(),/calendar-home-set/)
+  const firstStart=new Date(Date.now()+20*86400000);firstStart.setUTCHours(9,0,0,0);const secondStart=new Date(firstStart.getTime()+86400000)
+  const event=start=>`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:device-event-1\r\nDTSTART:${start.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}\r\nDTEND:${new Date(start.getTime()+3600000).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}\r\nSUMMARY:Endgerät Termin\r\nDESCRIPTION:Vom Smartphone erstellt\r\nEND:VEVENT\r\nEND:VCALENDAR`
+  const created=await fetch(`${url}/caldav/calendar/device-event-1.ics`,{method:'PUT',headers:{...headers,'Content-Type':'text/calendar'},body:event(firstStart)})
+  assert.equal(created.status,201);const etag=created.headers.get('etag');assert.ok(etag)
+  const changed=await fetch(`${url}/caldav/calendar/device-event-1.ics`,{method:'PUT',headers:{...headers,'Content-Type':'text/calendar','If-Match':etag},body:event(secondStart)})
+  assert.equal(changed.status,204)
+  const appointments=await fetch(`${url}/api/appointments`,{headers:{Cookie:cookie}}).then(response=>response.json()),item=appointments.find(entry=>entry.caldavUid==='device-event-1')
+  assert.equal(item.start,secondStart.toISOString());assert.equal(item.source,'caldav')
+  assert.equal((await fetch(`${url}/caldav/calendar/device-event-1.ics`,{method:'DELETE',headers})).status,204)
+  const archived=await fetch(`${url}/api/appointments`,{headers:{Cookie:cookie}}).then(response=>response.json())
+  assert.equal(archived.find(entry=>entry.id===item.id).status,'Storniert')
+  const report=await fetch(`${url}/caldav/calendar/`,{method:'REPORT',headers})
+  assert.equal(report.status,207);assert.equal((await report.text()).includes('device-event-1'),false)
+})
