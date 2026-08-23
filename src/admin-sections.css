@@ -7,6 +7,11 @@
 }
 
 .calendar-imports { padding:22px; border:1px solid #dedbd4; border-radius:8px; background:#fff; }
+.caldav-profile-card { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:22px; border:1px solid #dedbd4; border-radius:8px; background:#fff; }
+.caldav-profile-card h3 { margin:5px 0; }
+.caldav-profile-card p { margin:0; color:#817d75; font-size:10px; line-height:1.6; }
+.caldav-profile-card a { flex:none; text-decoration:none; }
+.caldav-profile-card a.is-disabled { opacity:.45; pointer-events:none; }
 .calendar-imports .settings-heading > button { padding:11px 14px; border:1px solid #d8d4cc; border-radius:5px; background:#fff; color:#343530; font:600 10px/1.2 var(--sans); letter-spacing:.08em; cursor:pointer; box-shadow:0 1px 2px rgba(25,25,22,.04); transition:border-color .2s,background .2s,transform .2s,box-shadow .2s; }
 .calendar-imports .settings-heading > button:hover { border-color:#aaa69d; background:#f8f7f3; transform:translateY(-1px); box-shadow:0 5px 14px rgba(25,25,22,.08); }
 .calendar-imports .settings-heading > button:focus-visible { outline:2px solid var(--red); outline-offset:2px; }
@@ -21,7 +26,7 @@
 .calendar-import-row p.error { color:var(--red); }
 .cal-day.external-calendar-day { border-color:#b8b8b4 !important; background:#efefed !important; }
 .cal-day.external-calendar-day small { background:#d7d7d3 !important; color:#575851 !important; }
-@media(max-width:900px){.calendar-import-row>div{grid-template-columns:1fr}.calendar-import-row .switch{justify-self:start}}
+@media(max-width:900px){.calendar-import-row>div{grid-template-columns:1fr}.calendar-import-row .switch{justify-self:start}.caldav-profile-card{align-items:flex-start;flex-direction:column}.caldav-profile-card a{width:100%;text-align:center}}
 
 .appointment-form-grid {
   display: grid;

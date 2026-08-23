@@ -136,6 +136,34 @@ const parseIcsDate=value=>{const match=String(value||'').match(/^(\d{4})(\d{2})(
 const parseCalendarEvent=body=>{const unfolded=String(body||'').replace(/\r?\n[ \t]/g,''),event=unfolded.match(/BEGIN:VEVENT\r?\n([\s\S]*?)\r?\nEND:VEVENT/i)?.[1];if(!event)return null;const fields={};for(const line of event.split(/\r?\n/)){const separator=line.indexOf(':');if(separator<0)continue;fields[line.slice(0,separator).split(';')[0].toUpperCase()]=line.slice(separator+1)}const start=parseIcsDate(fields.DTSTART),end=parseIcsDate(fields.DTEND);if(!start||!end||end<=start)return null;return{uid:cleanText(icsUnescape(fields.UID),180),start,end,summary:cleanText(icsUnescape(fields.SUMMARY),180)||'Externer Termin',description:cleanText(icsUnescape(fields.DESCRIPTION),4000)}}
 const caldavAuthorized=(request,config)=>{if(!config?.enabled||!config.username||!config.password)return false;const encoded=String(request.headers.authorization||'').match(/^Basic\s+(.+)$/i)?.[1];if(!encoded)return false;let credentials='';try{credentials=Buffer.from(encoded,'base64').toString('utf8')}catch{return false}const separator=credentials.indexOf(':'),username=credentials.slice(0,separator),password=credentials.slice(separator+1);return separator>=0&&username===String(config.username)&&password.length===String(config.password).length&&timingSafeEqual(Buffer.from(password),Buffer.from(String(config.password)))}
 const sendXml=(response,status,body,extra={})=>{response.writeHead(status,{'Content-Type':'application/xml; charset=utf-8','Cache-Control':'no-store',...extra});response.end(body)}
+const profileUuid=label=>{const value=createHmac('sha256',applicationSecret).update(`mobileconfig:${label}`).digest('hex').slice(0,32).toUpperCase();return`${value.slice(0,8)}-${value.slice(8,12)}-${value.slice(12,16)}-${value.slice(16,20)}-${value.slice(20)}`}
+const caldavMobileConfig=(config,host)=>`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>PayloadContent</key><array><dict>
+<key>CalDAVAccountDescription</key><string>Tattoo Sfumato Termine</string>
+<key>CalDAVHostName</key><string>${xmlEscape(host)}</string>
+<key>CalDAVPassword</key><string>${xmlEscape(config.password)}</string>
+<key>CalDAVPort</key><integer>443</integer>
+<key>CalDAVPrincipalURL</key><string>/caldav/principal/</string>
+<key>CalDAVUseSSL</key><true/>
+<key>CalDAVUsername</key><string>${xmlEscape(config.username)}</string>
+<key>PayloadDescription</key><string>Bidirektionaler Studio-Kalender</string>
+<key>PayloadDisplayName</key><string>Tattoo Sfumato Kalender</string>
+<key>PayloadIdentifier</key><string>de.tattoosfumato.caldav.account</string>
+<key>PayloadType</key><string>com.apple.caldav.account</string>
+<key>PayloadUUID</key><string>${profileUuid('account')}</string>
+<key>PayloadVersion</key><integer>1</integer>
+</dict></array>
+<key>PayloadDescription</key><string>Richtet den Tattoo-Sfumato-Kalender auf diesem Gerät ein.</string>
+<key>PayloadDisplayName</key><string>Tattoo Sfumato Kalender</string>
+<key>PayloadIdentifier</key><string>de.tattoosfumato.caldav</string>
+<key>PayloadOrganization</key><string>Tattoo Sfumato</string>
+<key>PayloadRemovalDisallowed</key><false/>
+<key>PayloadType</key><string>Configuration</string>
+<key>PayloadUUID</key><string>${profileUuid('profile')}</string>
+<key>PayloadVersion</key><integer>1</integer>
+</dict></plist>`
 const calendarImportCache=new Map()
 const xmlUnescape=value=>String(value||'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&')
 const safeCalendarUrl=value=>{const url=new URL(value);if(url.protocol!=='https:')throw new Error('Kalenderimporte benötigen eine HTTPS-Adresse.');const host=url.hostname.toLowerCase();if(host==='localhost'||host.endsWith('.local')||/^(127\.|10\.|192\.168\.|169\.254\.)/.test(host))throw new Error('Lokale Kalenderadressen sind nicht zulässig.');return url}
@@ -266,6 +294,8 @@ createServer(async (request, response) => {
   const mutatingAdminRequest=adminApi&&!['GET','HEAD'].includes(request.method)
   if(mutatingAdminRequest&&adminUser?.role==='Lesen')return sendJson(response,403,{error:'Dieses Konto besitzt nur Leserechte.'})
   if(adminApi&&(pathname.startsWith('/api/users')||pathname==='/api/settings'||pathname.startsWith('/api/calendar-imports'))&&adminUser?.role!=='Administrator')return sendJson(response,403,{error:'Diese Funktion ist Administratoren vorbehalten.'})
+
+  if(pathname==='/api/caldav.mobileconfig'&&request.method==='GET'){const settings=await readSettings(),config=settings.calendar?.caldav;if(adminUser?.role!=='Administrator')return sendJson(response,403,{error:'Diese Funktion ist Administratoren vorbehalten.'});if(!config?.enabled||!config.username||!config.password)return sendJson(response,409,{error:'CalDAV muss zuerst mit Benutzername und Passwort aktiviert und gespeichert werden.'});const host=new URL(String(process.env.PUBLIC_URL||'https://tattoosfumato.de')).hostname,profile=caldavMobileConfig(config,host);response.writeHead(200,{'Content-Type':'application/x-apple-aspen-config','Content-Disposition':'attachment; filename="tattoo-sfumato-caldav.mobileconfig"','Content-Length':Buffer.byteLength(profile),'Cache-Control':'no-store, private','X-Content-Type-Options':'nosniff'});response.end(profile);return}
 
   if (pathname === '/api/messages/inbound' && request.method === 'POST') {
     let body='';request.on('data',chunk=>{if(body.length<2000000)body+=chunk});request.on('end',async()=>{try{const input=JSON.parse(body),secret=process.env.INBOUND_EMAIL_SECRET;if(!secret||request.headers['x-inbound-secret']!==secret)return sendJson(response,401,{error:'Webhook nicht autorisiert.'});const haystack=`${input.subject||''} ${input.text||''}`,match=haystack.match(/#([A-Z0-9]{5,8})\b/i);if(!match)return sendJson(response,422,{error:'Keine Anfragenummer gefunden.'});const entries=await readRequests(),entry=entries.find(item=>String(item.reference||item.id).replace(/[^a-z0-9]/gi,'').toLowerCase().endsWith(match[1].toLowerCase()));if(!entry)return sendJson(response,404,{error:'Anfrage nicht gefunden.'});const email={id:`MAIL-${Date.now().toString(36).toUpperCase()}`,direction:'inbound',from:cleanText(input.from,180),subject:cleanText(input.subject,300),text:cleanText(input.text,10000),createdAt:input.date&&Number.isFinite(new Date(input.date).getTime())?new Date(input.date).toISOString():new Date().toISOString()};entry.emails=[...(entry.emails||[]),email].slice(-200);entry.timeline=[...(entry.timeline||[]),{title:'E-Mail vom Kunden',text:email.subject,createdAt:email.createdAt}].slice(-200);await saveRequests(entries);await notifyTelegram(`<b>NEUE E-MAIL-ANTWORT</b>\n\n<b>Anfrage:</b> ${telegramHtml(requestReference(entry))}\n<b>Von:</b> ${telegramHtml(email.from)}\n<b>Betreff:</b> ${telegramHtml(email.subject)}`);sendJson(response,201,{matched:entry.id,emailId:email.id})}catch{sendJson(response,400,{error:'E-Mail konnte nicht zugeordnet werden.'})}});return

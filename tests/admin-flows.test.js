@@ -63,6 +63,7 @@ test('CalDAV synchronisiert Termine bidirektional und archiviert Löschungen',as
   const cookie=await login(url),adminHeaders={Cookie:cookie,'Content-Type':'application/json'},settings=await fetch(`${url}/api/settings`,{headers:{Cookie:cookie}}).then(response=>response.json())
   settings.calendar.caldav={enabled:true,username:'studio',password:'very-secure-calendar-password'}
   assert.equal((await fetch(`${url}/api/settings`,{method:'PUT',headers:adminHeaders,body:JSON.stringify(settings)})).status,200)
+  const profile=await fetch(`${url}/api/caldav.mobileconfig`,{headers:{Cookie:cookie}});assert.equal(profile.status,200);assert.match(profile.headers.get('content-type'),/application\/x-apple-aspen-config/);const profileText=await profile.text();assert.match(profileText,/<key>CalDAVHostName<\/key>/);assert.match(profileText,/<string>studio<\/string>/)
   const authorization=`Basic ${Buffer.from('studio:very-secure-calendar-password').toString('base64')}`,headers={Authorization:authorization}
   assert.equal((await fetch(`${url}/caldav/`,{method:'OPTIONS',headers})).status,204)
   const discovery=await fetch(`${url}/caldav/`,{method:'PROPFIND',headers:{...headers,Depth:'1'}})
