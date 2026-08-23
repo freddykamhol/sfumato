@@ -15,9 +15,10 @@ test('Absage behält Terminakte, entfernt Kalenderbezug und öffnet Anfrage erne
   t.after(async()=>{child.kill();await rm(directory,{recursive:true,force:true})})
   await waitForServer(url)
   const cookie=await login(url),headers={Cookie:cookie,'Content-Type':'application/json'}
-  const requestResponse=await fetch(`${url}/api/requests`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Test Kunde',email:'test@example.com',phone:'0123',style:'Fineline',placement:'Arm',size:'10 cm',idea:'Testmotiv'})})
+  const requestResponse=await fetch(`${url}/api/requests`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Test Kunde',email:'test@example.com',phone:'0123',style:'Fineline',placement:'Arm',size:'10 cm',idea:'Testmotiv',references:[{name:'Vorlage.png',data:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='}]})})
   assert.equal(requestResponse.status,201)
   const requestEntry=await requestResponse.json()
+  assert.match(requestEntry.references[0].url,/\.webp$/);assert.equal(requestEntry.references[0].type,'image/webp');assert.equal((await readFile(join(directory,'uploads',requestEntry.id,'01.webp'))).subarray(0,4).toString(),'RIFF')
   const start=new Date(Date.now()+14*86400000);start.setUTCHours(10,0,0,0);const end=new Date(start.getTime()+2*3600000)
   const appointmentResponse=await fetch(`${url}/api/appointments`,{method:'POST',headers,body:JSON.stringify({requestId:requestEntry.id,clientName:requestEntry.name,email:'',start:start.toISOString(),end:end.toISOString(),override:true})})
   assert.equal(appointmentResponse.status,201)

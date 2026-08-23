@@ -7,9 +7,10 @@
     "test": "node --test tests",
     "dev": "vite",
     "build": "node scripts/prepare-index.js && vite build && node scripts/publish-static.js",
+    "optimize:references": "node scripts/optimize-existing-references.js",
     "preview": "vite preview",
     "start": "node app.js",
-    "live": "npm install --include=dev --include=prod --no-audit --no-fund && npm run build && node scripts/restart-passenger.js"
+    "live": "npm install --include=dev --include=prod --no-audit --no-fund && npm run build && npm run optimize:references && node scripts/restart-passenger.js"
   },
   "devDependencies": {
     "vite": "^8.2.0"
@@ -17,7 +18,8 @@
   "dependencies": {
     "mailparser": "3.9.15",
     "nodemailer": "^9.0.5",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "sharp": "^0.35.3"
   },
   "overrides": {
     "deepmerge-ts": "8.0.2"
