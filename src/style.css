@@ -74,6 +74,7 @@ img,svg{max-width:100%}
 /* Keep the consent control consistent with the consultation checkbox. */
 .booking-form .consent{gap:13px}.booking-form .consent>span{width:20px;height:20px;border-color:#817b72;transition:.2s}.booking-form .consent>small{font-size:9px;line-height:1.45;color:#666!important}.booking-form .consent input:checked+span{background:var(--red);border-color:var(--red);box-shadow:none}.booking-form .consent>span:after{left:5px;top:5px;color:#fff}
 .footer-brand img{display:block;width:200px;height:auto;max-height:125px;object-fit:contain;object-position:left center;filter:brightness(1.05) drop-shadow(0 0 5px rgba(255,255,255,.55)) drop-shadow(0 0 18px rgba(158,44,36,.8));will-change:filter,opacity}
+.footer-home-link{display:inline-block;width:max-content;max-width:100%;transition:transform .25s,filter .25s}.footer-home-link:hover{transform:translateY(-3px);filter:brightness(1.12)}.footer-home-link:focus-visible{outline:1px solid var(--red);outline-offset:8px}
 .social a{display:inline-flex;align-items:center;gap:12px;color:inherit;transition:color .2s}.social a:hover{color:#fff}
 [data-protected-signature],[data-protected-signature] img{-webkit-user-select:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
 .mobile-nav-cta{display:none}
