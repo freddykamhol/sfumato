@@ -27,6 +27,9 @@
 .calendar-import-row p.error { color:var(--red); }
 .cal-day.external-calendar-day { border-color:#b8b8b4 !important; background:#efefed !important; }
 .cal-day.external-calendar-day small { background:#d7d7d3 !important; color:#575851 !important; }
+[data-appointment-form] .smtp-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+[data-appointment-form] .smtp-grid > label { min-width:0; }
+[data-appointment-form] input[type="datetime-local"] { min-width:0; }
 @media(max-width:900px){.calendar-import-row>div{grid-template-columns:1fr}.calendar-import-row .switch{justify-self:start}.caldav-profile-card{align-items:flex-start;flex-direction:column}.caldav-profile-card a{width:100%;text-align:center}}
 
 .appointment-form-grid {
