@@ -60,6 +60,16 @@
   .project-card, .timeline-card, .appointment-media, .customer-notes { min-width: 0; }
   .project-card dl { grid-template-columns: 1fr; }
   .request-duration label { grid-template-columns: minmax(0,1fr) 80px auto; }
+  .request-duration { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; align-items: stretch; padding: 14px; }
+  .request-duration > label:first-child { display: grid; grid-template-columns: minmax(0,1fr); align-content: start; }
+  .request-duration > label:first-child input { width: 100%; margin: 8px 0 3px; }
+  .request-duration > label:first-child span { grid-column: auto; }
+  .request-duration .last-of-day-toggle { grid-column: 1; width: 100%; min-height: 72px; padding: 12px 14px; align-items: center; gap: 12px; border-radius: 4px; }
+  .request-duration .last-of-day-toggle i { flex: 0 0 38px; }
+  .request-duration .last-of-day-toggle span { line-height: 1.2; }
+  .request-duration .last-of-day-toggle b { font-size: 9px; letter-spacing: .02em; }
+  .request-duration .last-of-day-toggle small { margin-top: 3px; font-size: 8px; line-height: 1.25; letter-spacing: 0; }
+  .request-duration > button { grid-column: 1; width: 100%; min-height: 48px; }
   .request-references { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .request-references img { width: 100%; }
   .request-timeline form, .customer-notes form { min-width: 0; }
