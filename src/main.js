@@ -311,7 +311,7 @@ function initSite() {
     element.addEventListener('contextmenu', event => event.preventDefault())
     element.addEventListener('dragstart', event => event.preventDefault())
   })
-  const customSelect = document.querySelector('.custom-select')
+  const customSelect = document.querySelector('[name="style"]')?.closest('.custom-select')
   const selectTrigger = customSelect?.querySelector('.custom-select-trigger')
   const selectOptions = customSelect?.querySelector('.custom-select-options')
   const selectInput = customSelect?.querySelector('input')
