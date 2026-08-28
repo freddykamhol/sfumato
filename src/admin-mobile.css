@@ -145,4 +145,14 @@
   .customer-row-main { grid-template-columns: 38px minmax(0,1fr); }
   .customer-row-notes { display: none; }
   .settings-subnav { width: calc(100vw - 30px); }
+  .request-duration { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.35fr); gap: 12px; align-items: stretch; padding: 14px; }
+  .request-duration > label:first-child { display: grid; grid-template-columns: 1fr; align-content: start; }
+  .request-duration > label:first-child input { width: 100%; margin: 8px 0 3px; }
+  .request-duration > label:first-child span { grid-column: auto; }
+  .request-duration .last-of-day-toggle { width: 100%; min-height: 82px; padding: 12px; align-items: center; gap: 9px; border-radius: 4px; }
+  .request-duration .last-of-day-toggle i { flex: 0 0 38px; }
+  .request-duration .last-of-day-toggle span { line-height: 1.2; }
+  .request-duration .last-of-day-toggle b { font-size: 9px; letter-spacing: .02em; }
+  .request-duration .last-of-day-toggle small { margin-top: 3px; font-size: 8px; line-height: 1.25; letter-spacing: 0; }
+  .request-duration > button { grid-column: 1/-1; width: 100%; min-height: 46px; }
 }
