@@ -31,7 +31,7 @@ for (const entry of readdirSync(distRoot)) {
   }
 }
 
-for (const route of ['referenzen', 'impressum', 'datenschutz', 'admin', 'admin/login', 'admin/anfragen', 'admin/referenzen', 'admin/einstellungen', 'admin/einstellungen/schnittstellen', 'admin/einstellungen/benutzer', 'admin/einstellungen/kalender', 'admin/termin-neu', 'admin/terminakten', 'admin/kunden']) {
+for (const route of ['referenzen', 'impressum', 'datenschutz', 'admin', 'admin/login', 'admin/anfragen', 'admin/referenzen', 'admin/einstellungen', 'admin/einstellungen/schnittstellen', 'admin/einstellungen/benutzer', 'admin/einstellungen/kalender', 'admin/termin-neu', 'admin/terminakten', 'admin/kunden', 'admin/importe']) {
   const routeRoot = join(projectRoot, route)
   mkdirSync(routeRoot, { recursive: true })
   const routeIndex = join(routeRoot, 'index.html')
