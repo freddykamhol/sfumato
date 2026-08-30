@@ -334,6 +334,8 @@ function initSite() {
   customSelect?.addEventListener('keydown', event => { if (event.key === 'Escape') { closeSelect(); selectTrigger.focus() } })
   document.querySelector('.consultation-toggle')?.remove()
   document.querySelector('.consultation-choice')?.remove()
+  const ideaField=bookingForm?.querySelector('textarea[name="idea"]')?.closest('label')
+  if(ideaField&&!bookingForm.querySelector('[name="proposalTimePreference"]'))ideaField.insertAdjacentHTML('beforebegin','<fieldset class="booking-time-preference"><legend>WANN PASSEN DIR TERMINE AM BESTEN?</legend><p>Wir berücksichtigen deinen Wunsch bei allen Terminvorschlägen.</p><div><label><input required type="radio" name="proposalTimePreference" value="morning"><span><b>Vormittags</b><small>vor 12 Uhr</small></span></label><label><input required type="radio" name="proposalTimePreference" value="midday"><span><b>Mittags</b><small>ab 12 Uhr</small></span></label><label><input required type="radio" name="proposalTimePreference" value="afternoon"><span><b>Nachmittags</b><small>ab 15 Uhr</small></span></label><label><input required type="radio" name="proposalTimePreference" value="any"><span><b>Egal</b><small>flexibel</small></span></label></div></fieldset>')
   const consultation = document.querySelector('#consultation')
   const consultationChoice = document.querySelector('.consultation-choice')
   const consultationTypes = [...document.querySelectorAll('[name="consultationType"]')]
