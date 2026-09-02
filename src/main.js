@@ -400,7 +400,7 @@ function initSite() {
       }
       demoRequests.unshift(result)
       form.reset(); referenceFiles=[]; renderReferencePreviews(); selectTrigger.firstChild.textContent='Bitte auswählen'; selectOptions.querySelectorAll('[role="option"]').forEach(item=>item.removeAttribute('aria-selected'));const locationTrigger=form.querySelector('.booking-location-select .custom-select-trigger'),locationOptions=form.querySelector('.booking-location-select .custom-select-options'),firstLocation=locationOptions?.querySelector('[role="option"]');if(locationTrigger&&firstLocation){locationTrigger.firstChild.textContent=firstLocation.textContent;locationOptions.querySelectorAll('[role="option"]').forEach(item=>item.setAttribute('aria-selected',String(item===firstLocation)));form.elements.appointmentCity.value=firstLocation.dataset.city;form.elements.appointmentStudio.value=firstLocation.dataset.studio;form.querySelector('[data-location-description]').textContent=firstLocation.dataset.address||''}if(consultationChoice)consultationChoice.hidden=true; consultationTypes.forEach(option=>option.required=false)
-      message.textContent='Danke! Deine Anfrage ist angekommen. Wir melden uns persönlich bei dir.'
+      message.textContent='Danke! Deine Anfrage ist angekommen. Wir melden uns persönlich bei dir. Schau bitte auch in deinen Spam-Ordner.'
       const toast=document.querySelector('.toast'); toast.textContent='Anfrage erfolgreich gesendet'; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),3500)
     } catch (error) {
       message.textContent = error.message || 'Die Anfrage konnte nicht gesendet werden. Bitte versuche es erneut.'
