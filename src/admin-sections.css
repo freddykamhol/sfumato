@@ -167,6 +167,9 @@
 .stored-proposals article button { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 14px; border: 0; border-top: 1px solid #e8e5df; background: #fff; text-align: left; cursor: pointer; }
 .stored-proposals article button:hover { background: #faf9f6; }.stored-proposals article button span b,.stored-proposals article button span small { display: block; }.stored-proposals article button span b { font-size: 12px; }.stored-proposals article button span small { margin-top: 4px; color: #8b867e; font-size: 9px; }.stored-proposals article button i { color: var(--red); font-size: 10px; font-style: normal; }
 .stored-proposals > .secondary-action,.request-book-actions { margin-top: 16px; }.request-book-actions { display: flex; justify-content: flex-end; }
+.stored-proposals article > p { margin: 0; padding: 12px 14px; color: #68645c; font-size: 12px; line-height: 1.6; }
+.stored-proposals article [data-resend-proposal] { color: var(--red); font-weight: 700; background: #f7f4ef; }
+.stored-proposals article button:disabled { opacity: .5; cursor: default; }
 .linked-appointment { margin-top: 18px; padding: 24px; border: 1px solid #d9d5ce; border-radius: 8px; background: #fff; }
 .linked-appointment > div { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .linked-appointment > div i { padding: 6px 10px; border-radius: 999px; background: #e4f0e6; color: #31713d; font-size: 9px; font-style: normal; letter-spacing: .12em; }

@@ -29,3 +29,5 @@ data/uploads/
 *.njsproj
 *.sln
 *.sw?
+
+data/application-secret

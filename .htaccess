@@ -1,0 +1,7 @@
+# Application data and backend source must never be served as static files.
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule ^(?:data|node_modules|scripts|tests|src)(?:/|$) - [F,L]
+RewriteRule ^(?:app\.js|customer-workflows\.js|package(?:-lock)?\.json)$ - [F,L]
+RewriteRule (^|/)\.(?!well-known(?:/|$)) - [F,L]
+</IfModule>

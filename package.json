@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests",
+    "reminders": "node scripts/send-proposal-reminders.js",
     "dev": "vite",
     "build": "node scripts/prepare-index.js && vite build && node scripts/publish-static.js",
     "optimize:references": "node scripts/optimize-existing-references.js",
