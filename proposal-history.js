@@ -1,4 +1,12 @@
 const phoneKey = value => String(value || '').replace(/\D/g, '').replace(/^0049/, '49').replace(/^0/, '49')
+export function releaseOpenProposals(entry, { at = new Date().toISOString(), replacementId = '', requested = false } = {}) {
+  for (const batch of entry.proposals || []) {
+    if (batch.selectedSlot || batch.cancelledAt || batch.id === replacementId) continue
+    batch.cancelledAt = at
+    if (replacementId) batch.supersededBy = replacementId
+    if (requested) batch.newProposalsRequestedAt = at
+  }
+}
 export function previouslyProposedSlots(entry, requests = []) {
   const email = String(entry?.email || '').trim().toLowerCase(), phone = phoneKey(entry?.phone)
   const related = [entry, ...requests.filter(item => item.id !== entry?.id && ((email && String(item.email || '').trim().toLowerCase() === email) || (phone && phoneKey(item.phone) === phone)))]

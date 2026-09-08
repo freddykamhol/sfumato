@@ -2,6 +2,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { releaseOpenProposals } from './proposal-history.js'
 
 export const DAY = 86400000
 export const earliestProposalNotice = 'Die angebotenen Termine sind tatsächlich die nächstmöglichen Termine unter Berücksichtigung deiner Wünsche und der benötigten Zeit. Frühere Termine können wir dir derzeit nicht anbieten. Bitte sieh deshalb von Rückfragen nach einem früheren Termin ab.'
@@ -113,8 +114,10 @@ export function customerWorkflows(deps) {
   }
   async function requestNew(entry, batch) {
     if (completed(entry, batch)) return 'Für diese Vorschläge wurde bereits ein Termin gebucht.'
+    if (batch.supersededBy) return 'Für diese Anfrage wurden bereits neue Vorschläge versendet. Bitte verwende den Link aus der neuesten E-Mail.'
     if (batch.newProposalsRequestedAt) return 'Neue Terminvorschläge wurden bereits angefordert.'
     const settings = await readSettings(), now = new Date().toISOString()
+    releaseOpenProposals(entry, { at: now, requested: true })
     batch.newProposalsRequestedAt = now; batch.cancelledAt = now
     // Release the previous reservations before searching or attempting delivery.
     entry.status = 'Neu'; delete entry.readAt; entry.activityAt = now
@@ -130,6 +133,7 @@ export function customerWorkflows(deps) {
         const next = { id: `PROP-${randomBytes(12).toString('hex')}`, sentAt: now, linkIssuedAt: now, linkToken: randomBytes(32).toString('base64url'), kind: batch.kind || 'main', consultationType: batch.consultationType, appointmentId: batch.appointmentId, duration: durationMinutes / 60, durationMinutes, slots, automaticallyGenerated: true }
         try {
           await sendProposal(entry, next)
+          releaseOpenProposals(entry, { at: now, replacementId: next.id })
           entry.proposals = [...(entry.proposals || []), next]
           entry.status = next.kind === 'consultation' ? 'Beratung' : 'In Klärung'
           event(entry, 'Neue Terminvorschläge automatisch gesendet')
@@ -148,6 +152,7 @@ export function customerWorkflows(deps) {
     if (req.method === 'GET') {
       if (!authenticated) { sendHtml(res, page('Link ungültig', `<p>Du kannst dir einen neuen Link an die in deiner Anfrage hinterlegte E-Mail-Adresse senden lassen. Die bisherigen Vorschläge bleiben dabei unverändert, sofern die Termine noch verfügbar sind.</p>${form(id, batchId, token, 'resend', 'Neuen Link generieren und senden')}`)); return true }
       if (completed(entry, batch)) { sendHtml(res, page('Termin bereits gebucht', '<p>Für diese Vorschläge wurde bereits ein Termin gebucht. Du findest die Einzelheiten in deiner Buchungsbestätigung.</p>')); return true }
+      if (batch.supersededBy) { sendHtml(res, page('Neue Vorschläge versendet', '<p>Diese Vorschläge wurden ersetzt. Bitte öffne den Link aus unserer neuesten E-Mail. Prüfe auch deinen Spamordner.</p>')); return true }
       if (batch.cancelledAt || proposalExpired(batch)) { sendHtml(res, page('Terminvorschläge abgelaufen', `<p>Diese Terminauswahl ist nicht mehr verfügbar. Fordere hier neue Termine an.</p>${form(id, batchId, token, 'new', 'Neue Termine anfordern')}`)); return true }
       return false
     }

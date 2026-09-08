@@ -3,7 +3,15 @@ import assert from 'node:assert/strict'
 import { proposalMailText, earliestProposalNotice } from '../customer-workflows.js'
 import { sendBookingRequest } from '../src/booking-request.js'
 import { matchesOverview } from '../src/overview-filters.js'
-import { previouslyProposedSlots } from '../proposal-history.js'
+import { previouslyProposedSlots, releaseOpenProposals } from '../proposal-history.js'
+
+test('Neue Vorschläge geben nur offene Blöcke der betroffenen Anfrage frei', () => {
+  const entry = { proposals: [{ id: 'main', kind: 'main' }, { id: 'consultation', kind: 'consultation' }, { id: 'move', kind: 'reschedule' }, { id: 'booked', selectedSlot: '2030-01-01' }, { id: 'cancelled', cancelledAt: 'old' }] }
+  releaseOpenProposals(entry, { at: 'now', replacementId: 'new' })
+  assert.ok(entry.proposals.slice(0, 3).every(batch => batch.cancelledAt === 'now' && batch.supersededBy === 'new'))
+  assert.deepEqual(entry.proposals[3], { id: 'booked', selectedSlot: '2030-01-01' })
+  assert.deepEqual(entry.proposals[4], { id: 'cancelled', cancelledAt: 'old' })
+})
 
 test('Live-Filter kombinieren Suchwörter, Anfrageart und Status', () => {
   const values = { requestType: 'touchup', status: 'In Klärung' }

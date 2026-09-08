@@ -93,6 +93,17 @@ test('Abgelaufene Auswahl bietet neue Termine an; manuell und automatisch einsch
   }
 })
 
+test('Kundenwunsch gibt alle offenen Vorschläge dieser Anfrage frei, aber keine anderen Anfragen', async () => {
+  const f = fixture()
+  f.entries[0].proposals.push({ ...f.entries[0].proposals[0], id: 'second-open' }, { id: 'booked', selectedSlot: iso(20) })
+  const other = { ...structuredClone(f.entries[0]), id: 'another-request' }
+  f.entries.push(other)
+  await f.workflows.publicProposal({ method: 'POST' }, response(), input('new'))
+  assert.ok(f.entries[0].proposals.slice(0, 2).every(batch => batch.cancelledAt && batch.newProposalsRequestedAt))
+  assert.ok(!f.entries[0].proposals[2].cancelledAt)
+  assert.deepEqual(f.entries[1], other)
+})
+
 test('SMTP-Fehler beim Erneuern lässt bisherigen Link gültig', async () => {
   const f = fixture({ sendRequestMail: async () => { throw new Error('SMTP offline') } }), res = response()
   await f.workflows.admin(request('', { requestId: 'REQ-test', batchId: 'PROP-test' }), res, '/api/proposals/resend')
@@ -142,7 +153,7 @@ test('Bilder nachreichen verlangt Zustimmung, ordnet Dateien zu und verhindert W
 test('HTTP: Nachstechen, mehrere Abwesenheiten, abgelaufene Links und Freigabe beim Löschen', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'sfumato-http-')), port = 41000 + Math.floor(Math.random() * 2000), base = `http://127.0.0.1:${port}`
   // Passenger's CommonJS loader must be able to require the ESM startup file.
-  const child = spawn(process.execPath, ['-e', "require('./app.js')"], { env: { ...process.env, PORT: String(port), DATA_DIRECTORY: dir, ADMIN_INITIAL_PASSWORD: 'test-password', ADMIN_SESSION_SECRET: 'test-secret', PUBLIC_URL: base }, stdio: 'ignore' })
+  const child = spawn(process.execPath, ['-e', "require('nodemailer').createTransport = () => ({ sendMail: async () => ({ messageId: 'test-mail' }) }); require('./app.js')"], { env: { ...process.env, PORT: String(port), DATA_DIRECTORY: dir, ADMIN_INITIAL_PASSWORD: 'test-password', ADMIN_SESSION_SECRET: 'test-secret', PUBLIC_URL: base }, stdio: 'ignore' })
   t.after(async () => { child.kill(); await once(child, 'exit'); await rm(dir, { recursive: true, force: true }) })
   let ready = false
   for (let n = 0; n < 100; n++) { try { if ((await fetch(`${base}/health`)).ok) { ready = true; break } } catch {} await new Promise(resolve => setTimeout(resolve, 100)) }
@@ -184,7 +195,33 @@ test('HTTP: Nachstechen, mehrere Abwesenheiten, abgelaufene Links und Freigabe b
   assert.ok(afterHistoryRemoval.slots.every(slot => !batch.slots.includes(slot)))
   batch.sentAt = iso(-1)
   await fetch(`${base}/api/requests/${entry.id}`, { method: 'PATCH', headers, body: JSON.stringify({ proposals: [batch] }) })
+  const otherResponse = await fetch(`${base}/api/requests`, { method: 'POST', headers, body: JSON.stringify({ ...payload, references: [{ name: 'Tattoo.png', data: png }] }) })
+  const other = await otherResponse.json()
+  const otherBatch = { ...batch, id: 'PROP-other-request', slots: ['2030-03-01T10:00:00Z', '2030-03-02T10:00:00Z', '2030-03-03T10:00:00Z'] }
+  await fetch(`${base}/api/requests/${other.id}`, { method: 'PATCH', headers, body: JSON.stringify({ proposals: [otherBatch] }) })
+  const replacement = { requestId: entry.id, duration: 1, slots: ['2030-02-01T10:00:00Z', '2030-02-02T10:00:00Z', '2030-02-03T10:00:00Z'], override: true }
+  // An unsuccessful send must keep the old reservations in place.
+  const failedSend = await fetch(`${base}/api/proposals/send`, { method: 'POST', headers, body: JSON.stringify(replacement) })
+  assert.equal(failedSend.status, 502)
+  const afterFailure = await (await fetch(`${base}/api/requests`, { headers })).json()
+  assert.ok(!afterFailure.find(item => item.id === entry.id).proposals[0].cancelledAt)
+  settings.integrations.smtp = { enabled: true, host: 'test.invalid', user: 'test@example.test', password: 'test', from: 'test@example.test' }
+  await fetch(`${base}/api/settings`, { method: 'PUT', headers, body: JSON.stringify(settings) })
+  const sentResponse = await fetch(`${base}/api/proposals/send`, { method: 'POST', headers, body: JSON.stringify(replacement) })
+  assert.equal(sentResponse.status, 201)
+  const sent = await sentResponse.json()
+  assert.equal(sent.proposals[0].supersededBy, sent.batch.id)
+  assert.ok(sent.proposals[0].cancelledAt)
+  assert.ok(!sent.proposals[1].cancelledAt)
+  const afterSend = await (await fetch(`${base}/api/requests`, { headers })).json()
+  assert.deepEqual(afterSend.find(item => item.id === other.id).proposals, [otherBatch])
+  assert.match(await (await fetch(link)).text(), /Diese Vorschläge wurden ersetzt/)
+  const oldClick = await fetch(`${base}/terminvorschlaege`, { method: 'POST', body: new URLSearchParams({ anfrage: entry.id, batch: batch.id, token: batch.linkToken, action: 'new' }) })
+  assert.match(await oldClick.text(), /bereits neue Vorschläge versendet/)
+  const blocks = await (await fetch(`${base}/api/availability-blocks`, { headers })).json()
+  assert.deepEqual(blocks.filter(item => item.requestId === entry.id).map(item => item.start), replacement.slots.map(slot => new Date(slot).toISOString()))
+  assert.equal(blocks.filter(item => item.requestId === other.id).length, 3)
   await fetch(`${base}/api/requests/${entry.id}`, { method: 'DELETE', headers })
-  assert.equal((await (await fetch(`${base}/api/availability-blocks`, { headers })).json()).length, 0)
+  assert.equal((await (await fetch(`${base}/api/availability-blocks`, { headers })).json()).filter(item => item.requestId === entry.id).length, 0)
   assert.equal((await fetch(`${base}/data/application-secret`)).status, 404)
 })
