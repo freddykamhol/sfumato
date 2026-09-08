@@ -4,6 +4,14 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 export const DAY = 86400000
+export const earliestProposalNotice = 'Die angebotenen Termine sind tatsächlich die nächstmöglichen Termine unter Berücksichtigung deiner Wünsche und der benötigten Zeit. Frühere Termine können wir dir derzeit nicht anbieten. Bitte sieh deshalb von Rückfragen nach einem früheren Termin ab.'
+export function proposalMailText(text, actionUrl, actionLabel) {
+  let result = String(text || '').trim()
+  if (!String(actionUrl).includes('/terminvorschlaege?') && !(result.includes('Terminvorschl') && result.includes('•'))) return result
+  if (!result.includes(earliestProposalNotice)) result += `\n\n${earliestProposalNotice}`
+  if (['Termin auswählen', 'Neuen Termin auswählen'].includes(actionLabel) && !result.includes('7 Tage')) result += '\n\nDein Link ist 7 Tage gültig. Bitte wähle einen Termin oder fordere über den Link neue Vorschläge an. Nach 6 Tagen erinnern wir dich; nach Ablauf werden die reservierten Zeiten freigegeben.'
+  return result
+}
 export const proposalExpiresAt = batch => new Date(batch.linkIssuedAt || batch.sentAt).getTime() + 7 * DAY
 export const proposalExpired = (batch, now = Date.now()) => !(proposalExpiresAt(batch) > now)
 export const sameToken = (a, b) => typeof a === 'string' && typeof b === 'string' && a.length > 0 && Buffer.byteLength(a) === Buffer.byteLength(b) && timingSafeEqual(Buffer.from(a), Buffer.from(b))
@@ -165,7 +173,8 @@ export function customerWorkflows(deps) {
     } finally { locks.delete(id) }
     return true
   }
-  const uploadPage = () => page('Bilder nachreichen', `<p>Lade Bilder zu deiner Idee oder Referenzbilder hoch. Maximal 5 Bilder, jeweils 10 MB (JPG, PNG oder WebP).</p><form id="upload"><label>Bilder auswählen<input required type="file" name="images" accept="image/jpeg,image/png,image/webp" multiple></label><label><input required type="checkbox" name="consent"> Ich stimme der Verarbeitung meiner Bilder zur Bearbeitung meiner Anfrage gemäß der <a href="/datenschutz/" target="_blank" rel="noopener">Datenschutzerklärung</a> zu.</label><button>Bilder hochladen und senden</button><p role="status"></p></form><script>document.querySelector('form').onsubmit=async e=>{e.preventDefault();const f=e.target,b=f.querySelector('button'),m=f.querySelector('[role=status]');b.disabled=true;try{const files=[...f.images.files];if(!files.length||files.length>5||files.some(x=>x.size>10000000))throw Error('Bitte 1 bis 5 Bilder mit jeweils maximal 10 MB auswählen.');const references=await Promise.all(files.map(file=>new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve({name:file.name,data:r.result});r.onerror=reject;r.readAsDataURL(file)})));const response=await fetch(location.href,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({references,consent:f.consent.checked})}),result=await response.json();if(!response.ok)throw Error(result.error);f.innerHTML='<p>Danke! Deine Bilder sind eingegangen und wurden deiner Anfrage zugeordnet.</p>'}catch(error){m.textContent=error.message;b.disabled=false}};</script>`)
+  const uploadPage = () => page('Bilder nachreichen', `<link rel="stylesheet" href="/customer-upload.css?v=2"><p class="upload-intro">Zeig uns, was du dir vorstellst. Lade Bilder deiner Idee, passende Referenzen oder ein Foto deines Tattoos hoch. Alles landet direkt in deiner bestehenden Anfrage.</p><ol class="upload-steps"><li><b>01</b> Bilder auswählen</li><li><b>02</b> Auswahl prüfen</li><li><b>03</b> Sicher senden</li></ol><form id="upload"><label class="upload-drop"><input type="file" name="images" aria-label="Bilder auswählen" aria-describedby="upload-help" accept="image/jpeg,image/png,image/webp" multiple><span class="upload-plus" aria-hidden="true">＋</span><strong>Bilder auswählen oder hierher ziehen</strong><small id="upload-help">JPG, PNG oder WebP · max. 5 Bilder · je 10 MB</small></label><p class="upload-counter" aria-live="polite">0 von 5 Bildern ausgewählt</p><div class="upload-preview-grid"></div><label class="upload-consent"><input required type="checkbox" name="consent"><span>Ich stimme der Verarbeitung meiner Bilder zur Bearbeitung meiner Anfrage gemäß der <a href="/datenschutz/" target="_blank" rel="noopener">Datenschutzerklärung</a> zu.</span></label><button class="upload-submit" type="submit">Bilder hochladen und senden <span aria-hidden="true">→</span></button><p class="upload-status" role="status" aria-live="polite"></p></form><footer class="upload-footer"><span>Tattoo Sfumato · Einbeck</span><a href="/impressum/">Impressum</a><a href="/datenschutz/">Datenschutz</a></footer><script src="/customer-upload.js?v=2" defer></script>`)
+
   async function upload(req, res) {
     const params = new URL(req.url, 'http://localhost').searchParams, id = params.get('anfrage'), token = params.get('token')
     const entry = (await readRequests()).find(item => item.id === id)
