@@ -1,0 +1,7 @@
+.email-context-message { min-width: 0; overflow-wrap: anywhere; }
+.email-context-message > b { font-size: 16px; line-height: 1.5; }
+.mail-readable-body { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; line-height: 1.8; color: #343630; }
+.mail-quoted-history { margin-top: 24px; border-top: 1px solid #dedbd3; padding-top: 16px; }
+.mail-quoted-history summary { cursor: pointer; color: #9e2c24; font-weight: 600; padding: 8px 0; }
+.mail-quoted-history summary:focus-visible { outline: 2px solid #9e2c24; outline-offset: 4px; }
+.mail-quoted-history .mail-readable-body { margin-top: 16px; padding-left: 16px; border-left: 3px solid #dedbd3; color: #6e7069; font-size: 13px; }
