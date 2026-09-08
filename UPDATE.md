@@ -10,7 +10,7 @@ Die neue dauerhafte Schlüsseldatei kann den flüchtigen Schlüssel einer alten 
 
 ## Ausliefern
 
-Backend `app.js` **und `customer-workflows.js`**, `package.json`, `scripts/`, `.htaccess` und die gebauten Website-Dateien gemeinsam ausliefern. `data/.htaccess` ergänzen, ohne andere Dateien im Live-Datenordner zu ersetzen. Bei vorhandenen eigenen Apache-Regeln die Zugriffssperren in die bestehende `.htaccess` übernehmen. `npm run build` erstellt die Website-Dateien. Der normale Neustart aktiviert das Backend.
+Backend `app.js`, **`customer-workflows.js` und `proposal-history.js`**, `package.json`, `scripts/`, `.htaccess` und die gebauten Website-Dateien gemeinsam ausliefern. `data/.htaccess` ergänzen, ohne andere Dateien im Live-Datenordner zu ersetzen. Bei vorhandenen eigenen Apache-Regeln die Zugriffssperren in die bestehende `.htaccess` übernehmen. `npm run build` erstellt die Website-Dateien. Der normale Neustart aktiviert das Backend.
 
 ## Erinnerungen auch bei ruhender Passenger-App
 

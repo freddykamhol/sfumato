@@ -166,6 +166,12 @@ test('HTTP: Nachstechen, mehrere Abwesenheiten, abgelaufene Links und Freigabe b
   const batch = { id: 'PROP-http', sentAt: iso(-1), linkToken: 'test-link-token', duration: 1, slots: available.slots }
   assert.equal((await fetch(`${base}/api/requests/${entry.id}`, { method: 'PATCH', headers, body: JSON.stringify({ proposals: [batch] }) })).status, 200)
   assert.equal((await (await fetch(`${base}/api/availability-blocks`, { headers })).json()).length, 3)
+  const regenerated = await (await fetch(`${base}/api/proposals/available?${new URLSearchParams({ requestId: entry.id, after: '2029-12-31T12:00:00Z', durationHours: '1' })}`, { headers })).json()
+  assert.equal(regenerated.slots.length, 3)
+  assert.ok(regenerated.slots.every(slot => !batch.slots.includes(slot)))
+  const duplicateSend = await fetch(`${base}/api/proposals/send`, { method: 'POST', headers, body: JSON.stringify({ requestId: entry.id, duration: 1, slots: batch.slots, override: true }) })
+  assert.equal(duplicateSend.status, 409)
+  assert.match((await duplicateSend.json()).error, /bereits/)
   const link = `${base}/terminvorschlaege?${new URLSearchParams({ anfrage: entry.id, batch: batch.id, token: batch.linkToken })}`
   assert.match(await (await fetch(link)).text(), /Wähle deinen Termin/)
   batch.sentAt = iso(-8)
@@ -173,6 +179,9 @@ test('HTTP: Nachstechen, mehrere Abwesenheiten, abgelaufene Links und Freigabe b
   assert.match(await (await fetch(link)).text(), /Neue Termine anfordern/)
   const attempt = await fetch(`${base}/terminvorschlaege`, { method: 'POST', body: new URLSearchParams({ anfrage: entry.id, batch: batch.id, token: batch.linkToken, action: 'book', slot: '0' }) })
   assert.equal(attempt.status, 410)
+  await fetch(`${base}/api/requests/${entry.id}`, { method: 'PATCH', headers, body: JSON.stringify({ proposals: [] }) })
+  const afterHistoryRemoval = await (await fetch(`${base}/api/proposals/available?${new URLSearchParams({ requestId: entry.id, after: '2029-12-31T12:00:00Z', durationHours: '1' })}`, { headers })).json()
+  assert.ok(afterHistoryRemoval.slots.every(slot => !batch.slots.includes(slot)))
   batch.sentAt = iso(-1)
   await fetch(`${base}/api/requests/${entry.id}`, { method: 'PATCH', headers, body: JSON.stringify({ proposals: [batch] }) })
   await fetch(`${base}/api/requests/${entry.id}`, { method: 'DELETE', headers })
