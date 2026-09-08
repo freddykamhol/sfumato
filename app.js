@@ -17,7 +17,9 @@ const root = fileURLToPath(new URL('.', import.meta.url))
 const port = Number(process.env.PORT) || 3000
 const serverVersion = '2026-08-23.5'
 const dataDirectory = process.env.DATA_DIRECTORY ? resolve(process.env.DATA_DIRECTORY) : join(root, 'data')
-const applicationSecret = await persistentSecret(dataDirectory, process.env.ADMIN_SESSION_SECRET || process.env.DEMO_PASSWORD)
+// Passenger loads the startup module with require(); keep its module graph free
+// of top-level await. The existing secret is read synchronously without rotation.
+const applicationSecret = persistentSecret(dataDirectory, process.env.ADMIN_SESSION_SECRET || process.env.DEMO_PASSWORD)
 const requestsFile = join(dataDirectory, 'requests.json')
 const appointmentsFile = join(dataDirectory, 'appointments.json')
 const customerNotesFile = join(dataDirectory, 'customer-notes.json')

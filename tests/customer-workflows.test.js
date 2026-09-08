@@ -141,7 +141,8 @@ test('Bilder nachreichen verlangt Zustimmung, ordnet Dateien zu und verhindert W
 
 test('HTTP: Nachstechen, mehrere Abwesenheiten, abgelaufene Links und Freigabe beim Löschen', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'sfumato-http-')), port = 41000 + Math.floor(Math.random() * 2000), base = `http://127.0.0.1:${port}`
-  const child = spawn(process.execPath, ['app.js'], { env: { ...process.env, PORT: String(port), DATA_DIRECTORY: dir, ADMIN_INITIAL_PASSWORD: 'test-password', ADMIN_SESSION_SECRET: 'test-secret', PUBLIC_URL: base }, stdio: 'ignore' })
+  // Passenger's CommonJS loader must be able to require the ESM startup file.
+  const child = spawn(process.execPath, ['-e', "require('./app.js')"], { env: { ...process.env, PORT: String(port), DATA_DIRECTORY: dir, ADMIN_INITIAL_PASSWORD: 'test-password', ADMIN_SESSION_SECRET: 'test-secret', PUBLIC_URL: base }, stdio: 'ignore' })
   t.after(async () => { child.kill(); await once(child, 'exit'); await rm(dir, { recursive: true, force: true }) })
   let ready = false
   for (let n = 0; n < 100; n++) { try { if ((await fetch(`${base}/health`)).ok) { ready = true; break } } catch {} await new Promise(resolve => setTimeout(resolve, 100)) }

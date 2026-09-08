@@ -1,5 +1,6 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 export const DAY = 86400000
@@ -16,12 +17,12 @@ export function savedCustomerToken(entry, path, params, token) {
       } catch { return false }
     }))
 }
-export async function persistentSecret(directory, configured) {
+export function persistentSecret(directory, configured) {
   if (configured) return configured
-  await mkdir(directory, { recursive: true })
+  mkdirSync(directory, { recursive: true })
   const path = join(directory, 'application-secret')
-  try { await writeFile(path, randomBytes(32).toString('hex'), { flag: 'wx', mode: 0o600 }) } catch (error) { if (error.code !== 'EEXIST') throw error }
-  const secret = (await readFile(path, 'utf8')).trim()
+  try { writeFileSync(path, randomBytes(32).toString('hex'), { flag: 'wx', mode: 0o600 }) } catch (error) { if (error.code !== 'EEXIST') throw error }
+  const secret = readFileSync(path, 'utf8').trim()
   if (!secret) throw new Error('Der gespeicherte Anwendungsschlüssel ist leer.')
   return secret
 }
