@@ -13,6 +13,15 @@ test('Neue Vorschläge geben nur offene Blöcke der betroffenen Anfrage frei', (
   assert.deepEqual(entry.proposals[4], { id: 'cancelled', cancelledAt: 'old' })
 })
 
+test('Neue Projektvorschläge lassen andere Projekte und Buchungen unberührt', () => {
+  const entry={proposals:[{id:'p1-old',projectId:'p1'},{id:'p2-open',projectId:'p2'},{id:'p1-booked',projectId:'p1',selectedSlot:'2030-01-01'}]}
+  releaseOpenProposals(entry,{at:'now',replacementId:'p1-new',projectId:'p1'})
+  assert.equal(entry.proposals[0].cancelledAt,'now')
+  assert.equal(entry.proposals[0].supersededBy,'p1-new')
+  assert.equal(entry.proposals[1].cancelledAt,undefined)
+  assert.equal(entry.proposals[2].cancelledAt,undefined)
+})
+
 test('Live-Filter kombinieren Suchwörter, Anfrageart und Status', () => {
   const values = { requestType: 'touchup', status: 'In Klärung' }
   assert.equal(matchesOverview('Müller, Arm, Nachstechen', 'muller arm', values, { requestType: 'touchup', status: 'In Klärung' }), true)

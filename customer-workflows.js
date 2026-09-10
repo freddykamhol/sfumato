@@ -69,7 +69,8 @@ export function customerWorkflows(deps) {
   const tokenFor = (entry, batch) => batch.linkToken || proposalToken(entry.id, batch.id)
   const valid = (entry, batch, token) => sameToken(tokenFor(entry, batch), token) || (!batch.linkToken && savedCustomerToken(entry, '/terminvorschlaege', { anfrage: entry.id, batch: batch.id }, token))
   const urlFor = (entry, batch) => `${publicUrl()}/terminvorschlaege?${new URLSearchParams({ anfrage: entry.id, batch: batch.id, token: tokenFor(entry, batch) })}`
-  const completed = (entry, batch) => Boolean(batch.selectedSlot || (batch.kind !== 'reschedule' && (batch.kind === 'consultation' ? entry.consultationAppointmentId : entry.bookedAppointmentId)))
+  const projectFor=(entry,batch)=>batch.projectId&&entry.projects?.find(project=>project.id===batch.projectId)
+  const completed = (entry, batch) => Boolean(batch.selectedSlot || (batch.kind !== 'reschedule' && (batch.kind === 'consultation' ? entry.consultationAppointmentId : projectFor(entry,batch)?.bookedAppointmentId||entry.bookedAppointmentId)))
   const logMail = (entry, sent) => { entry.emails = [...(entry.emails || []), { id: `MAIL-${randomBytes(12).toString('hex')}`, direction: 'outbound', to: entry.email, ...sent, createdAt: new Date().toISOString() }].slice(-200) }
   const event = (entry, title, text = '') => { entry.timeline = [...(entry.timeline || []), { title, text, createdAt: new Date().toISOString() }].slice(-200) }
   const page = (title, content) => `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${esc(title)} · Tattoo Sfumato</title><style>*{box-sizing:border-box}body{margin:0;background:#10110f;color:#eee9df;font:16px Arial;min-height:100dvh;display:grid;place-items:center;padding:24px}main{width:min(620px,100%);padding:32px;background:#171815;border:1px solid #353630;border-radius:12px}h1{font:36px Georgia}p{line-height:1.7;color:#ccc}button{padding:16px;border:0;border-radius:6px;background:#eee9df;color:#171815;font-weight:bold;cursor:pointer}label{display:block;margin:24px 0}a{color:inherit}input[type=file]{max-width:100%}</style></head><body><main><small>TATTOO · SFUMATO</small><h1>${esc(title)}</h1>${content}</main></body></html>`
@@ -89,11 +90,12 @@ export function customerWorkflows(deps) {
     snapshots.set(entry, structuredClone(entry))
   }
   async function sendProposal(entry, batch, reminder = false) {
+    const project=projectFor(entry,batch),projectLabel=project?`${project.requestType==='touchup'?'Nachstechen':'Tattoo'} · ${project.style||'Stil offen'} · ${project.placement||'Körperstelle offen'}`:''
     const slots = batch.slots.map(slot => `• ${new Intl.DateTimeFormat('de-DE', { timeZone: 'Europe/Berlin', dateStyle: 'full', timeStyle: 'short' }).format(new Date(slot))} Uhr`).join('\n')
     const text = reminder
-      ? `Hallo ${entry.name?.split(/\s+/)[0] || ''},\n\ndeine Terminauswahl läuft morgen ab. Bitte entscheide dich für einen der drei Termine oder fordere über den Link neue Terminvorschläge an.\n\n${slots}`
-      : `Hallo ${entry.name?.split(/\s+/)[0] || ''},\n\nhier sind deine Terminvorschläge:\n\n${slots}\n\nDies sind die frühestmöglichen Termine, die wir dir unter Berücksichtigung deiner Wünsche und der benötigten Zeit anbieten können. Bei einem erneut gesendeten Link bleiben die bereits vorgeschlagenen Termine unverändert.\n\nDer Link ist 7 Tage gültig. Bitte wähle in dieser Zeit einen Termin verbindlich aus oder fordere neue Terminvorschläge an. Nach Ablauf werden die reservierten Zeiten wieder freigegeben.`
-    const sent = await sendRequestMail({ requestEntry: entry, to: entry.email, subject: reminder ? 'Erinnerung: Bitte wähle deinen Termin' : 'Deine Terminvorschläge – 7 Tage gültig', text, actionUrl: urlFor(entry, batch), actionLabel: 'Termin auswählen oder neue Vorschläge anfordern' })
+      ? `Hallo ${entry.name?.split(/\s+/)[0] || ''},\n\ndeine Terminauswahl${project?' für '+projectLabel:''} läuft morgen ab. Bitte entscheide dich für einen Termin oder fordere über den Link neue Vorschläge an.\n\n${slots}`
+      : `Hallo ${entry.name?.split(/\s+/)[0] || ''},\n\nhier sind deine Terminvorschläge${project?' für '+projectLabel:''}:\n\n${slots}\n\nDies sind die frühestmöglichen Termine unter Berücksichtigung deiner Wünsche und der benötigten Zeit. Jedes Projekt einer Sammelanfrage wird einzeln gebucht. Deine bereits gebuchten anderen Projekttermine bleiben unverändert.\n\nDer Link ist 7 Tage gültig. Bitte wähle einen Termin verbindlich aus oder fordere nur für dieses Projekt neue Vorschläge an.`
+    const sent = await sendRequestMail({ requestEntry: entry, to: entry.email, subject: reminder ? `Erinnerung: Termin${project?' für '+projectLabel:''} wählen` : `Terminvorschläge${project?' · '+projectLabel:''}`, text, actionUrl: urlFor(entry, batch), actionLabel: 'Projekttermin auswählen oder neue Vorschläge anfordern' })
     logMail(entry, sent)
     return sent
   }
@@ -117,25 +119,26 @@ export function customerWorkflows(deps) {
     if (batch.supersededBy) return 'Für diese Anfrage wurden bereits neue Vorschläge versendet. Bitte verwende den Link aus der neuesten E-Mail.'
     if (batch.newProposalsRequestedAt) return 'Neue Terminvorschläge wurden bereits angefordert.'
     const settings = await readSettings(), now = new Date().toISOString()
-    releaseOpenProposals(entry, { at: now, requested: true })
+    releaseOpenProposals(entry, { at: now, requested: true, projectId:batch.projectId||'' })
     batch.newProposalsRequestedAt = now; batch.cancelledAt = now
     // Release the previous reservations before searching or attempting delivery.
-    entry.status = 'Neu'; delete entry.readAt; entry.activityAt = now
-    event(entry, 'Neue Terminvorschläge angefragt', 'Kunde bittet um neue Termine.')
+    const project=projectFor(entry,batch);if(project)project.proposalStatus='requested'
+    entry.status = project&&entry.projects.some(item=>item.bookedAppointmentId)?'Teilweise terminiert':'Neu'; delete entry.readAt; entry.activityAt = now
+    event(entry, project?`Neue Terminvorschläge für Projekt ${entry.projects.indexOf(project)+1} angefragt`:'Neue Terminvorschläge angefragt', 'Kunde bittet um neue Termine.')
     await persistEntry(entry)
     if (settings.calendar?.autoNewProposals) {
       const appointments = await readAppointments()
       await readImportedCalendarEvents(settings)
       const durationMinutes = Number(batch.durationMinutes) || Number(batch.duration || 4) * 60
       const after = new Date(Math.max(Date.now(), ...(batch.slots || []).map(slot => new Date(slot).getTime())))
-      const { slots } = findAvailableProposalSlots({ entry, durationHours: durationMinutes / 60, after, appointments, settings })
+      const slotEntry=project?{...entry,...project}:entry,{ slots } = findAvailableProposalSlots({ entry:slotEntry, durationHours: durationMinutes / 60, after, appointments, settings })
       if (slots.length === 3) {
-        const next = { id: `PROP-${randomBytes(12).toString('hex')}`, sentAt: now, linkIssuedAt: now, linkToken: randomBytes(32).toString('base64url'), kind: batch.kind || 'main', consultationType: batch.consultationType, appointmentId: batch.appointmentId, duration: durationMinutes / 60, durationMinutes, slots, automaticallyGenerated: true }
+        const next = { id: `PROP-${randomBytes(12).toString('hex')}`, sentAt: now, linkIssuedAt: now, linkToken: randomBytes(32).toString('base64url'), kind: batch.kind || 'main', consultationType: batch.consultationType, appointmentId: batch.appointmentId, projectId:batch.projectId, duration: durationMinutes / 60, durationMinutes, slots, automaticallyGenerated: true }
         try {
           await sendProposal(entry, next)
-          releaseOpenProposals(entry, { at: now, replacementId: next.id })
+          releaseOpenProposals(entry, { at: now, replacementId: next.id, projectId:batch.projectId||'' })
           entry.proposals = [...(entry.proposals || []), next]
-          entry.status = next.kind === 'consultation' ? 'Beratung' : 'In Klärung'
+          if(project){project.proposalStatus='sent';project.lastProposalBatchId=next.id}entry.status = next.kind === 'consultation' ? 'Beratung' : entry.projects?.some(item=>item.bookedAppointmentId)?'Teilweise terminiert':'In Klärung'
           event(entry, 'Neue Terminvorschläge automatisch gesendet')
           await persistEntry(entry)
           return 'Drei neue Terminvorschläge wurden dir per E-Mail gesendet.'

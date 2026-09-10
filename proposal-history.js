@@ -1,7 +1,7 @@
 const phoneKey = value => String(value || '').replace(/\D/g, '').replace(/^0049/, '49').replace(/^0/, '49')
-export function releaseOpenProposals(entry, { at = new Date().toISOString(), replacementId = '', requested = false } = {}) {
+export function releaseOpenProposals(entry, { at = new Date().toISOString(), replacementId = '', requested = false, projectId = '' } = {}) {
   for (const batch of entry.proposals || []) {
-    if (batch.selectedSlot || batch.cancelledAt || batch.id === replacementId) continue
+    if (batch.selectedSlot || batch.cancelledAt || batch.id === replacementId || projectId && batch.projectId !== projectId) continue
     batch.cancelledAt = at
     if (replacementId) batch.supersededBy = replacementId
     if (requested) batch.newProposalsRequestedAt = at
