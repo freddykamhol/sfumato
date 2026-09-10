@@ -63,7 +63,8 @@ export function installOverviewFilters(content) {
         const { bar, rows } = view, query = bar.querySelector('[data-overview-search]').value, filters = Object.fromEntries([...bar.querySelectorAll('[data-overview-key]')].map(select => [select.dataset.overviewKey, select.value])), archive = bar.querySelector('[data-archive-mode].active')?.dataset.archiveMode || 'current',sort=bar.querySelector('[data-overview-sort]')?.value||'date-desc'
         saved.set(def.key, { query, filters, archive, sort })
         const [sortKey,direction]=sort.split('-'),factor=direction==='desc'?-1:1,textValue=(row,key)=>{if(key==='status')return row.querySelector('.request-row')?.dataset.status||row.dataset.status||row.querySelector('.status')?.textContent||row.querySelector('.portfolio-state')?.textContent||'';return row.querySelector('.request-row>span b,.appointment-file-row>button>span b,.customer-row-main>div b,.portfolio-card-copy b,.bulk-import-row>span:last-child b,.admin-users>article span b')?.childNodes[0]?.textContent||row.textContent||''},dateFactor=['appointments','imports'].includes(def.key)?1:-1,ordered=rows.slice().sort((a,b)=>sortKey==='date'?(Number(a.dataset.overviewOrder)-Number(b.dataset.overviewOrder))*factor*dateFactor:textValue(a,sortKey).localeCompare(textValue(b,sortKey),'de',{sensitivity:'base',numeric:true})*factor)
-        ordered.forEach(row=>row.parentElement?.append(row))
+        const parent=ordered[0]?.parentElement,current=parent?[...parent.children].filter(child=>rows.includes(child)):[]
+        if(parent&&ordered.some((row,index)=>row!==current[index]))ordered.forEach(row=>parent.append(row))
         let visible = 0
         for (const row of rows) {
           const request = row.querySelector('.request-row'), values = request ? { ...request.dataset, requestType: request.dataset.requestType || 'new' } : { status: row.dataset.status }
