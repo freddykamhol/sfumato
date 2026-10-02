@@ -53,3 +53,21 @@ test('Laufzeitvergleich mit belegtem Kalender; Verfügbarkeit wird bei jeder Suc
   appointments.push({ id: 'new-booking', start: first, end: new Date(new Date(first).getTime() + 4 * 3600000).toISOString() })
   assert.ok(!optimized.findAvailableProposalSlots(data).slots.includes(first))
 })
+
+test('Fester Kundenwunsch hält Wochentag und Zeitfenster ein und kennzeichnet Überziehung', () => {
+  const entry = { ...request(), preferredWeekday: 2, preferredTime: '17:00' }
+  const config = settings()
+  config.calendar.overtimeHours = 0
+  const engine = scheduler(current, [entry])
+  const result = engine.findAvailableProposalSlots({ entry, settings: config, appointments: [], durationHours: 2, after: '2030-01-01T12:00:00Z' })
+  assert.equal(result.slots.length, 3)
+  for (const slot of result.slots) {
+    const start = new Date(slot)
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Berlin', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(start).filter(part => part.type !== 'literal').map(part => [part.type, part.value]))
+    assert.equal(parts.weekday, 'Tue')
+    assert.ok(['16:00','17:00','18:00'].includes(`${parts.hour}:${parts.minute}`))
+    const warnings = engine.validateAppointmentSlot({ start, end: new Date(start.getTime() + 2 * 3600000), appointments: [], settings: config, label: `${entry.name} ${entry.style}` })
+    assert.ok(warnings.some(warning => warning.startsWith('ÜBERZIEHUNG:')))
+    assert.ok(!warnings.some(warning => warning.startsWith('SPERRE: Der Termin endet')))
+  }
+})

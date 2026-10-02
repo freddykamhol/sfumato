@@ -112,6 +112,14 @@
   font-style: normal;
 }
 
+.cal-dot.reservation { background: #b7a78c; }
+.calendar-grid .cal-day small.reserved {
+  color: #796f61;
+  background: #eee9df;
+  border-left: 2px solid #b7a78c;
+  font-weight: 500;
+}
+
 .modal-form-error {
   min-height: 18px;
   margin: 10px 0 0;
@@ -156,3 +164,4 @@
     min-width: 650px;
   }
 }
+.session-strategy-card,.session-summary{border:1px solid #ddd8cf;border-radius:12px;background:#faf8f3;padding:22px;margin:20px 0}.session-strategy-card>div{margin-bottom:16px}.session-strategy-card h3,.session-summary h3{margin:4px 0 6px}.session-strategy-card p,.session-summary p{margin:0;color:#6d6d67}.session-strategy-card>label,.session-strategy-choice label{display:flex;gap:12px;align-items:flex-start;padding:14px;margin-top:10px;border:1px solid #d8d3ca;border-radius:9px;background:#fff;cursor:pointer}.session-strategy-card input,.session-strategy-choice input{margin-top:4px;accent-color:#9e2c24}.session-strategy-card label span,.session-strategy-choice label span{display:grid;gap:3px}.session-strategy-card small,.session-strategy-choice small,.session-strategy-summary small{color:#777970}.session-setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.session-setup-grid label{position:relative}.session-setup-grid label span{position:absolute;right:12px;bottom:13px;color:#777}.session-strategy-choice{border:0;padding:0;margin:20px 0}.session-strategy-choice legend{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.session-strategy-summary{display:grid;gap:4px;margin:20px 0;padding:15px;border-left:3px solid #9e2c24;background:#f5f1eb}.session-summary{display:flex;align-items:center;justify-content:space-between;gap:20px}.session-summary strong{white-space:nowrap;color:#9e2c24;letter-spacing:.08em}@media(max-width:700px){.session-setup-grid{grid-template-columns:1fr}.session-summary{align-items:flex-start;flex-direction:column}}
